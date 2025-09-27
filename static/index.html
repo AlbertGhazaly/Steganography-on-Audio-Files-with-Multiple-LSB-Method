@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[Tucil Kripto] MP3 Embeddor/Extractor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #3b82f6;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-5 font-sans leading-relaxed">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-4xl font-bold text-gray-800 text-center mb-8">[Tucil Kripto] MP3 Embeddor/Extractor</h1>
+        
+        <div id="status" class="text-center mb-5 p-3 rounded-md font-bold border-2 border-red-200 bg-red-50 text-red-800">
+            Checking connection...
+        </div>
+
+        <div class="flex gap-3 mb-5">
+            <div class="flex-1 p-4 border-2 border-blue-500 bg-blue-500 text-white rounded-lg cursor-pointer text-center transition-all duration-300 hover:bg-blue-600" onclick="switchTab('embed')">
+                Embed
+            </div>
+            <div class="flex-1 p-4 border-2 border-gray-300 bg-white text-gray-700 rounded-lg cursor-pointer text-center transition-all duration-300 hover:border-blue-500 hover:bg-gray-50" onclick="switchTab('extract')">
+                Extract
+            </div>
+        </div>
+
+        <!-- Embed Section -->
+        <div id="embed-section" class="bg-gray-50 p-6 rounded-lg mb-8">
+            <form id="embedForm" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label for="embed-mp3-file" class="block mb-2 font-bold text-gray-600">MP3 Cover File</label>
+                    <input type="file" id="embed-mp3-file" name="mp3_file" accept=".mp3" required 
+                           class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <div id="embed-mp3-info" class="hidden bg-gray-200 p-3 rounded-md mt-2 text-sm text-gray-600"></div>
+                    <div id="embed-mp3-player" class="hidden mt-3">
+                        <audio controls preload="none" class="w-full rounded-lg bg-gray-100 shadow-sm">
+                            <source id="embed-mp3-source" src="" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="embed-secret-file" class="block mb-2 font-bold text-gray-600">Secret File</label>
+                    <input type="file" id="embed-secret-file" name="secret_file" required 
+                           class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <div id="embed-secret-info" class="hidden bg-gray-200 p-3 rounded-md mt-2 text-sm text-gray-600"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="embed-key" class="block mb-2 font-bold text-gray-600">Steganography Key</label>
+                    <input type="text" id="embed-key" name="key" placeholder="Enter your secret key (ASCII characters 0-255)..." required 
+                           class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div class="mb-4">
+                    <label for="embed-lsb" class="block mb-2 font-bold text-gray-600">LSB Bits</label>
+                    <select id="embed-lsb" name="lsb_bits" required 
+                            class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 bg-white">
+                        <option value="1">1 bit</option>
+                        <option value="2">2 bits</option>
+                        <option value="3">3 bits</option>
+                        <option value="4">4 bits</option>
+                    </select>
+                </div>
+
+                <div class="mb-6 flex flex-row justify-center gap-10">
+                    <div class="flex items-center gap-3 mb-4">
+                        <label class="toggle">
+                            <input type="checkbox" id="embed-encryption" name="use_encryption">
+                            <span class="slider"></span>
+                        </label>
+                        <label for="embed-encryption" class="font-semibold text-gray-700">Encrypt</label>
+                    </div>
+
+                    <div class="flex items-center gap-3 mb-4">
+                        <label class="toggle">
+                            <input type="checkbox" id="embed-position" name="use_key_for_position">
+                            <span class="slider"></span>
+                        </label>
+                        <label for="embed-position" class="font-semibold text-gray-700">Use Key for Position Seed</label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center">
+                    <button type="submit" class="bg-blue-500 text-white px-6 py-3 items-center rounded-lg font-semibold text-base transition-colors duration-300 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        Embed Secret File
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Extract Section -->
+        <div id="extract-section" class="bg-gray-50 p-6 rounded-lg mb-8 hidden">
+            <form id="extractForm" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label for="extract-mp3-file" class="block mb-2 font-bold text-gray-600">MP3 File with Hidden Data</label>
+                    <input type="file" id="extract-mp3-file" name="mp3_file" accept=".mp3" required 
+                           class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <div id="extract-mp3-info" class="hidden bg-gray-200 p-3 rounded-md mt-2 text-sm text-gray-600"></div>
+                    <div id="extract-mp3-player" class="hidden mt-3">
+                        <audio controls preload="none" class="w-full rounded-lg bg-gray-100 shadow-sm">
+                            <source id="extract-mp3-source" src="" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="extract-key" class="block mb-2 font-bold text-gray-600">Steganography Key</label>
+                    <input type="text" id="extract-key" name="key" placeholder="Enter the secret key (ASCII characters 0-255)..." required 
+                           class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div class="mb-4">
+                    <label for="extract-lsb" class="block mb-2 font-bold text-gray-600">LSB Bits</label>
+                    <select id="extract-lsb" name="lsb_bits" required 
+                            class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 bg-white">
+                        <option value="1">1 bit</option>
+                        <option value="2">2 bits</option>
+                        <option value="3">3 bits</option>
+                        <option value="4">4 bits</option>
+                    </select>
+                </div>
+
+                <div class="mb-6 flex flex-row justify-center gap-10">
+                    <div class="flex items-center gap-3 mb-4">
+                        <label class="toggle">
+                            <input type="checkbox" id="extract-encryption" name="use_encryption">
+                            <span class="slider"></span>
+                        </label>
+                        <label for="extract-encryption" class="font-semibold text-gray-700">Encrypt</label>
+                    </div>
+
+                    <div class="flex items-center gap-3 mb-4">
+                        <label class="toggle">
+                            <input type="checkbox" id="extract-position" name="use_key_for_position">
+                            <span class="slider"></span>
+                        </label>
+                        <label for="extract-position" class="font-semibold text-gray-700">Use Key for Position Seed</label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center">
+                    <button type="submit" class="bg-green-500 text-white px-6 py-3 items-center rounded-lg font-semibold text-base transition-colors duration-300 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                        Extract Secret File
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="result-section" class="bg-gray-50 p-6 rounded-lg mb-8 hidden">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Operation Result</h2>
+            <div id="result-message"></div>
+            
+            <div id="result-player" class="hidden mt-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Preview Audio:</h3>
+                <audio controls preload="none" class="w-full rounded-lg bg-gray-100 shadow-sm mb-4">
+                    <source id="result-mp3-source" src="" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                <div class="mt-4">
+                    <button onclick="downloadStegoFile()" 
+                            class="w-full bg-blue-500 text-white p-3 rounded-lg font-bold hover:bg-blue-600 transition-colors duration-300">
+                        Save Audio File
+                    </button>
+                    <p class="text-sm text-gray-600 mt-2 text-center">Click to choose save location and filename</p>
+                </div>
+            </div>
+            
+            <div id="extract-result" class="hidden mt-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Extracted Secret File:</h3>
+                <div id="extract-preview" class="bg-white p-4 border-2 border-gray-300 rounded-lg mb-4 max-h-64 overflow-y-auto"></div>
+                <div class="mt-4">
+                    <button onclick="downloadExtractedFile()" 
+                            class="w-full bg-green-500 text-white p-3 rounded-lg font-bold hover:bg-green-600 transition-colors duration-300">
+                        Save Extracted File
+                    </button>
+                    <p class="text-sm text-gray-600 mt-2 text-center">Click to choose save location and filename</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
