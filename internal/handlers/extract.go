@@ -27,6 +27,10 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 	key := r.FormValue("key")
 	useEncryption := r.FormValue("use_encryption") == "true"
 	useKeyForPosition := r.FormValue("use_key_for_position") == "true"
+	mode := r.FormValue("mode") // "paper" (default) or "legacy"
+	if mode == "" {
+		mode = "paper"
+	}
 	lsbBitsStr := r.FormValue("lsb_bits")
 
 	lsbBits, err := strconv.Atoi(lsbBitsStr)
@@ -70,9 +74,14 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Perform LSB steganography extraction
-	stegoProcessor := stego.NewLSBSteganography()
-	extractedData, err := stegoProcessor.ExtractMessage(mp3Data, lsbBits)
+	var extractedData []byte
+	if mode == "paper" {
+		paper := stego.NewPaperLSBSteganography()
+		extractedData, err = paper.ExtractMessagePaper(mp3Data, lsbBits)
+	} else {
+		stegoProcessor := stego.NewLSBSteganography()
+		extractedData, err = stegoProcessor.ExtractMessage(mp3Data, lsbBits)
+	}
 	if err != nil {
 		utils.SendError(w, "Failed to extract secret data: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -87,6 +96,6 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(extractedData)
 
-	log.Printf("Extract operation: key=%s, encryption=%v, keyPosition=%v, lsb=%d, mp3=%s",
-		key, useEncryption, useKeyForPosition, lsbBits, mp3Header.Filename)
+	log.Printf("Extract operation: mode=%s, key=%s, encryption=%v, keyPosition=%v, lsb=%d, mp3=%s",
+		mode, key, useEncryption, useKeyForPosition, lsbBits, mp3Header.Filename)
 }

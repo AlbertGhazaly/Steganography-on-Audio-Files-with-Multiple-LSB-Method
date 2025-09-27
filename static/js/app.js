@@ -102,6 +102,7 @@ class SteganographyApp {
         formData.set('use_encryption', document.getElementById('embed-encryption').checked);
         formData.set('use_key_for_position', document.getElementById('embed-position').checked);
         formData.set('lsb_bits', document.getElementById('embed-lsb').value);
+    formData.set('mode', 'paper');
 
         try {
             this.ui.showResult('Processing... Please wait', false);
@@ -144,6 +145,7 @@ class SteganographyApp {
         formData.set('use_encryption', document.getElementById('extract-encryption').checked);
         formData.set('use_key_for_position', document.getElementById('extract-position').checked);
         formData.set('lsb_bits', document.getElementById('extract-lsb').value);
+    formData.set('mode', 'paper');
 
         try {
             this.ui.showResult('Extracting... Please wait', false);
