@@ -1,11 +1,14 @@
 package handlers
 
 import (
-	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
+	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/stego"
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/utils"
 )
 
@@ -39,16 +42,50 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer mp3File.Close()
 
-	// For now, just return a dummy text file
-	// TODO: Implement actual steganography extraction
-	dummyContent := fmt.Sprintf("Extracted secret file\nKey: %s\nEncryption: %v\nKey Position: %v\nLSB Bits: %d\nFrom: %s",
-		key, useEncryption, useKeyForPosition, lsbBits, mp3Header.Filename)
+	// Create a temporary directory to save the MP3 file
+	tempDir := "./temp"
+	os.MkdirAll(tempDir, 0755)
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Content-Disposition", "attachment; filename=\"extracted_secret.txt\"")
-	w.Header().Set("Content-Length", strconv.Itoa(len(dummyContent)))
+	// Save the MP3 file temporarily
+	mp3Path := filepath.Join(tempDir, mp3Header.Filename)
+	mp3Dst, err := os.Create(mp3Path)
+	if err != nil {
+		utils.SendError(w, "Failed to save MP3 file", http.StatusInternalServerError)
+		return
+	}
+	defer mp3Dst.Close()
+	defer os.Remove(mp3Path)
 
-	w.Write([]byte(dummyContent))
+	_, err = io.Copy(mp3Dst, mp3File)
+	if err != nil {
+		utils.SendError(w, "Failed to save MP3 file", http.StatusInternalServerError)
+		return
+	}
+	mp3Dst.Close()
+
+	// Read the MP3 file
+	mp3Data, err := os.ReadFile(mp3Path)
+	if err != nil {
+		utils.SendError(w, "Failed to read MP3 file", http.StatusInternalServerError)
+		return
+	}
+
+	// Perform LSB steganography extraction
+	stegoProcessor := stego.NewLSBSteganography()
+	extractedData, err := stegoProcessor.ExtractMessage(mp3Data, lsbBits)
+	if err != nil {
+		utils.SendError(w, "Failed to extract secret data: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set content type based on the first few bytes of the extracted data
+	contentType := http.DetectContentType(extractedData)
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", "attachment; filename=\"extracted_secret\"")
+	w.Header().Set("Content-Length", strconv.Itoa(len(extractedData)))
+
+	w.Write(extractedData)
 
 	log.Printf("Extract operation: key=%s, encryption=%v, keyPosition=%v, lsb=%d, mp3=%s",
 		key, useEncryption, useKeyForPosition, lsbBits, mp3Header.Filename)

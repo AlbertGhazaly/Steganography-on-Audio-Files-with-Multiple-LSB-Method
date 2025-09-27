@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/stego"
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/utils"
 )
 
@@ -18,7 +19,7 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(100 << 20) // 100 MB limit
+	err := r.ParseMultipartForm(100 << 20)
 	if err != nil {
 		utils.SendError(w, "Failed to parse form data", http.StatusBadRequest)
 		return
@@ -66,22 +67,54 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 		utils.SendError(w, "Failed to save MP3 file", http.StatusInternalServerError)
 		return
 	}
-
-	// For now, just return the same MP3 file
-	// TODO: Implement actual steganography embedding
-
 	mp3Dst.Close()
+
 	mp3Data, err := os.ReadFile(mp3Path)
 	if err != nil {
 		utils.SendError(w, "Failed to read MP3 file", http.StatusInternalServerError)
 		return
 	}
 
+	secretPath := filepath.Join(tempDir, secretHeader.Filename)
+	secretDst, err := os.Create(secretPath)
+	if err != nil {
+		utils.SendError(w, "Failed to save secret file", http.StatusInternalServerError)
+		return
+	}
+	defer secretDst.Close()
+	defer os.Remove(secretPath)
+
+	_, err = io.Copy(secretDst, secretFile)
+	if err != nil {
+		utils.SendError(w, "Failed to save secret file", http.StatusInternalServerError)
+		return
+	}
+	secretDst.Close()
+
+	secretData, err := os.ReadFile(secretPath)
+	if err != nil {
+		utils.SendError(w, "Failed to read secret file", http.StatusInternalServerError)
+		return
+	}
+
+	capacity := stego.CalculateCapacity(len(mp3Data), lsbBits)
+	if len(secretData)+4 > capacity {
+		utils.SendError(w, fmt.Sprintf("Secret file too large to embed with %d LSB bits", lsbBits), http.StatusBadRequest)
+		return
+	}
+
+	stegoProcessor := stego.NewLSBSteganography()
+	embeddedData, err := stegoProcessor.EmbedMessage(mp3Data, secretData, lsbBits)
+	if err != nil {
+		utils.SendError(w, "Failed to embed secret data: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "audio/mpeg")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"stego_%s\"", mp3Header.Filename))
-	w.Header().Set("Content-Length", strconv.Itoa(len(mp3Data)))
+	w.Header().Set("Content-Length", strconv.Itoa(len(embeddedData)))
 
-	w.Write(mp3Data)
+	w.Write(embeddedData)
 
 	log.Printf("Embed operation: key=%s, encryption=%v, keyPosition=%v, lsb=%d, mp3=%s, secret=%s",
 		key, useEncryption, useKeyForPosition, lsbBits, mp3Header.Filename, secretHeader.Filename)
