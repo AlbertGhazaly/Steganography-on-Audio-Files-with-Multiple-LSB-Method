@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/crypto"
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/stego"
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/utils"
 )
@@ -28,7 +29,7 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 	key := r.FormValue("key")
 	useEncryption := r.FormValue("use_encryption") == "true"
 	useKeyForPosition := r.FormValue("use_key_for_position") == "true"
-	mode := r.FormValue("mode") // "paper" (default) or "legacy"
+	mode := r.FormValue("mode")
 	lsbBitsStr := r.FormValue("lsb_bits")
 
 	lsbBits, err := strconv.Atoi(lsbBitsStr)
@@ -98,12 +99,15 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if useEncryption && key != "" {
+		secretData = crypto.VigenereEncrypt(secretData, key)
+	}
+
 	if mode == "" {
 		mode = "paper"
 	}
 	var embeddedData []byte
 	if mode == "paper" {
-		// Paper-style: capacity accounts for signatures overhead
 		capacity := stego.PaperCalculateCapacity(len(mp3Data), lsbBits)
 		if len(secretData) > capacity {
 			utils.SendError(w, fmt.Sprintf("Secret file too large to embed with %d LSB bits (paper mode)", lsbBits), http.StatusBadRequest)
