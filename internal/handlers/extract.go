@@ -24,20 +24,12 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := r.FormValue("key")
-	useEncryption := r.FormValue("use_encryption") == "true"
-	useKeyForPosition := r.FormValue("use_key_for_position") == "true"
-	mode := r.FormValue("mode") // "paper" (default) or "legacy"
-	if mode == "" {
-		mode = "paper"
-	}
-	lsbBitsStr := r.FormValue("lsb_bits")
-
-	lsbBits, err := strconv.Atoi(lsbBitsStr)
-	if err != nil || lsbBits < 1 || lsbBits > 4 {
-		utils.SendError(w, "LSB bits must be between 1 and 4", http.StatusBadRequest)
-		return
-	}
+	// Header-based steganography doesn't need key, encryption, or LSB bits parameters
+	_ = r.FormValue("key")                  // Keep for compatibility but ignore
+	_ = r.FormValue("use_encryption")       // Keep for compatibility but ignore
+	_ = r.FormValue("use_key_for_position") // Keep for compatibility but ignore
+	_ = r.FormValue("mode")                 // Keep for compatibility but ignore
+	_ = r.FormValue("lsb_bits")             // Keep for compatibility but ignore
 
 	mp3File, mp3Header, err := r.FormFile("mp3_file")
 	if err != nil {
@@ -46,11 +38,9 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer mp3File.Close()
 
-	// Create a temporary directory to save the MP3 file
 	tempDir := "./temp"
 	os.MkdirAll(tempDir, 0755)
 
-	// Save the MP3 file temporarily
 	mp3Path := filepath.Join(tempDir, mp3Header.Filename)
 	mp3Dst, err := os.Create(mp3Path)
 	if err != nil {
@@ -74,14 +64,9 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var extractedData []byte
-	if mode == "paper" {
-		paper := stego.NewPaperLSBSteganography()
-		extractedData, err = paper.ExtractMessagePaper(mp3Data, lsbBits)
-	} else {
-		stegoProcessor := stego.NewLSBSteganography()
-		extractedData, err = stegoProcessor.ExtractMessage(mp3Data, lsbBits)
-	}
+	// Use header-based steganography instead of LSB
+	headerStego := stego.NewHeaderSteganography()
+	extractedData, err := headerStego.ExtractMessage(mp3Data)
 	if err != nil {
 		utils.SendError(w, "Failed to extract secret data: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -96,6 +81,5 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(extractedData)
 
-	log.Printf("Extract operation: mode=%s, key=%s, encryption=%v, keyPosition=%v, lsb=%d, mp3=%s",
-		mode, key, useEncryption, useKeyForPosition, lsbBits, mp3Header.Filename)
+	log.Printf("Extract operation: method=header, mp3=%s", mp3Header.Filename)
 }

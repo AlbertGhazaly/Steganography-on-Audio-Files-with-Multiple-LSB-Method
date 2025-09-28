@@ -42,11 +42,23 @@ class SteganographyApp {
             ValidationService.validateKey(this);
         });
 
-        document.getElementById('embed-mp3-file').addEventListener('change', function() {
+        document.getElementById('embed-mp3-file').addEventListener('change', async function() {
             app.ui.showFileInfo(this, 'embed-mp3-info', 'embed-mp3-player', 'embed-mp3-source');
+            
+            if (this.files[0]) {
+                await app.calculateCapacity(this.files[0]);
+            } else {
+                app.ui.hideCapacityInfo();
+            }
         });
         document.getElementById('embed-secret-file').addEventListener('change', function() {
             app.ui.showFileInfo(this, 'embed-secret-info');
+            
+            if (this.files[0]) {
+                app.ui.checkCapacityWarning(this.files[0].size);
+            } else {
+                app.ui.hideCapacityWarning();
+            }
         });
         document.getElementById('extract-mp3-file').addEventListener('change', function() {
             app.ui.showFileInfo(this, 'extract-mp3-info', 'extract-mp3-player', 'extract-mp3-source');
@@ -160,6 +172,25 @@ class SteganographyApp {
         } catch (error) {
             console.error('Error extracting file:', error);
             this.ui.showResult('Error: ' + error.message, true);
+        }
+    }
+
+    async calculateCapacity(mp3File) {
+        try {
+            const formData = new FormData();
+            formData.append('mp3_file', mp3File);
+            
+            const capacityData = await this.api.getCapacity(formData);
+            this.ui.showCapacityInfo(capacityData);
+            
+            // Re-check capacity warning if secret file is already selected
+            const secretFileInput = document.getElementById('embed-secret-file');
+            if (secretFileInput.files[0]) {
+                this.ui.checkCapacityWarning(secretFileInput.files[0].size);
+            }
+        } catch (error) {
+            console.error('Error calculating capacity:', error);
+            this.ui.hideCapacityInfo();
         }
     }
 }

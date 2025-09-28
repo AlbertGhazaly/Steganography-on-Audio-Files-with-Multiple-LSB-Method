@@ -195,4 +195,50 @@ export class UIManager {
             }
         }
     }
+
+    showCapacityInfo(capacityData) {
+        const capacityDiv = document.getElementById('embed-capacity-info');
+        const capacityBytes = document.getElementById('capacity-bytes');
+        const capacityMethod = document.getElementById('capacity-method');
+        const capacityFrames = document.getElementById('capacity-frames');
+
+        if (capacityData && capacityData.success) {
+            capacityBytes.textContent = capacityData.capacity_readable;
+            capacityMethod.textContent = capacityData.method;
+            capacityFrames.textContent = capacityData.frame_count + ' frames';
+            capacityDiv.classList.remove('hidden');
+            
+            // Store capacity for later validation
+            this.currentCapacity = capacityData.capacity_bytes;
+        } else {
+            capacityDiv.classList.add('hidden');
+            this.currentCapacity = null;
+        }
+    }
+
+    hideCapacityInfo() {
+        const capacityDiv = document.getElementById('embed-capacity-info');
+        capacityDiv.classList.add('hidden');
+        this.currentCapacity = null;
+    }
+
+    checkCapacityWarning(secretFileSize) {
+        const warningDiv = document.getElementById('capacity-warning');
+        const warningText = document.getElementById('capacity-warning-text');
+
+        if (this.currentCapacity && secretFileSize > this.currentCapacity) {
+            const sizeDiff = ((secretFileSize - this.currentCapacity) / 1024).toFixed(2);
+            warningText.textContent = `The secret file (${(secretFileSize/1024).toFixed(2)} KB) is ${sizeDiff} KB larger than the MP3 capacity (${(this.currentCapacity/1024).toFixed(2)} KB).`;
+            warningDiv.classList.remove('hidden');
+            return false; // File too large
+        } else {
+            warningDiv.classList.add('hidden');
+            return true; // File fits
+        }
+    }
+
+    hideCapacityWarning() {
+        const warningDiv = document.getElementById('capacity-warning');
+        warningDiv.classList.add('hidden');
+    }
 }

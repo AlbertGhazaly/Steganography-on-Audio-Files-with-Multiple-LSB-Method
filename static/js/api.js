@@ -53,4 +53,22 @@ export class ApiService {
             throw new Error(`Extract operation failed: ${error.message}`);
         }
     }
+
+    async getCapacity(formData) {
+        try {
+            const response = await fetch(`${this.BASE_URL}/capacity`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Capacity calculation failed');
+            }
+
+            return await response.json();
+        } catch (error) {
+            throw new Error(`Capacity calculation failed: ${error.message}`);
+        }
+    }
 }
