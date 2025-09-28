@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/crypto"
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/stego"
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/utils"
 )
@@ -24,12 +25,20 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Header-based steganography doesn't need key, encryption, or LSB bits parameters
-	_ = r.FormValue("key")                  // Keep for compatibility but ignore
-	_ = r.FormValue("use_encryption")       // Keep for compatibility but ignore
-	_ = r.FormValue("use_key_for_position") // Keep for compatibility but ignore
-	_ = r.FormValue("mode")                 // Keep for compatibility but ignore
-	_ = r.FormValue("lsb_bits")             // Keep for compatibility but ignore
+	key := r.FormValue("key")
+	useEncryption := r.FormValue("use_encryption") == "true"
+	// useKeyForPosition := r.FormValue("use_key_for_position") == "true"
+	mode := r.FormValue("mode")
+	if mode == "" {
+		mode = "paper"
+	}
+	lsbBitsStr := r.FormValue("lsb_bits")
+
+	lsbBits, err := strconv.Atoi(lsbBitsStr)
+	if err != nil || lsbBits < 1 || lsbBits > 4 {
+		utils.SendError(w, "LSB bits must be between 1 and 4", http.StatusBadRequest)
+		return
+	}
 
 	mp3File, mp3Header, err := r.FormFile("mp3_file")
 	if err != nil {
@@ -57,7 +66,6 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	mp3Dst.Close()
 
-	// Read the MP3 file
 	mp3Data, err := os.ReadFile(mp3Path)
 	if err != nil {
 		utils.SendError(w, "Failed to read MP3 file", http.StatusInternalServerError)
@@ -72,7 +80,10 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set content type based on the first few bytes of the extracted data
+	if useEncryption && key != "" {
+		extractedData = crypto.VigenereDecrypt(extractedData, key)
+	}
+
 	contentType := http.DetectContentType(extractedData)
 
 	w.Header().Set("Content-Type", contentType)

@@ -29,16 +29,22 @@ export class UIManager {
         
         if (tab === 'embed') {
             tabs[0].className = 'flex-1 p-4 border-2 border-blue-500 bg-blue-500 text-white rounded-lg cursor-pointer text-center transition-all duration-300 hover:bg-blue-600';
-        } else {
+        } else if (tab === 'extract') {
             tabs[1].className = 'flex-1 p-4 border-2 border-green-500 bg-green-500 text-white rounded-lg cursor-pointer text-center transition-all duration-300 hover:bg-green-600';
+        } else if (tab === 'psnr') {
+            tabs[2].className = 'flex-1 p-4 border-2 border-purple-500 bg-purple-500 text-white rounded-lg cursor-pointer text-center transition-all duration-300 hover:bg-purple-600';
         }
 
+        document.getElementById('embed-section').classList.add('hidden');
+        document.getElementById('extract-section').classList.add('hidden');
+        document.getElementById('psnr-section').classList.add('hidden');
+        
         if (tab === 'embed') {
             document.getElementById('embed-section').classList.remove('hidden');
-            document.getElementById('extract-section').classList.add('hidden');
-        } else {
-            document.getElementById('embed-section').classList.add('hidden');
+        } else if (tab === 'extract') {
             document.getElementById('extract-section').classList.remove('hidden');
+        } else if (tab === 'psnr') {
+            document.getElementById('psnr-section').classList.remove('hidden');
         }
 
         this.hideResultSection();
@@ -48,6 +54,7 @@ export class UIManager {
         const resultSection = document.getElementById('result-section');
         const resultPlayer = document.getElementById('result-player');
         const extractResult = document.getElementById('extract-result');
+        const psnrResult = document.getElementById('psnr-result');
         const audioSource = document.getElementById('result-mp3-source');
         
         if (audioSource.src && audioSource.src.startsWith('blob:')) {
@@ -70,6 +77,7 @@ export class UIManager {
         
         resultPlayer.classList.add('hidden');
         extractResult.classList.add('hidden');
+        psnrResult.classList.add('hidden');
         resultSection.classList.add('hidden');
     }
 
@@ -240,5 +248,76 @@ export class UIManager {
     hideCapacityWarning() {
         const warningDiv = document.getElementById('capacity-warning');
         warningDiv.classList.add('hidden');
+    }
+    
+    showPSNRResult(psnrData) {
+        const resultSection = document.getElementById('result-section');
+        const resultMessage = document.getElementById('result-message');
+        const psnrResult = document.getElementById('psnr-result');
+        const resultPlayer = document.getElementById('result-player');
+        const extractResult = document.getElementById('extract-result');
+        
+        resultPlayer.classList.add('hidden');
+        extractResult.classList.add('hidden');
+        psnrResult.classList.remove('hidden');
+        
+        // Format PSNR value to 2 decimal places
+        const psnrValue = psnrData.psnr.toFixed(2);
+        document.getElementById('psnr-value').textContent = `${psnrValue} dB`;
+        
+        // Format MSE to 6 decimal places
+        document.getElementById('mse-value').textContent = psnrData.mse.toFixed(6);
+        
+        // Display other metrics
+        document.getElementById('max-signal-value').textContent = psnrData.max_signal.toFixed(0);
+        document.getElementById('original-size').textContent = this.formatBytes(psnrData.original_size);
+        document.getElementById('modified-size').textContent = this.formatBytes(psnrData.modified_size);
+        
+        // Update quality bar
+        const qualityPercentage = Math.min(100, Math.max(0, (psnrValue / 50) * 100));
+        const qualityBar = document.getElementById('psnr-quality-bar');
+        qualityBar.style.width = `${qualityPercentage}%`;
+        qualityBar.textContent = `${Math.round(qualityPercentage)}%`;
+        
+        // Set bar color based on PSNR value
+        if (psnrValue < 20) {
+            qualityBar.classList.remove('bg-yellow-500', 'bg-green-500', 'bg-purple-500');
+            qualityBar.classList.add('bg-red-500');
+        } else if (psnrValue < 40) {
+            qualityBar.classList.remove('bg-red-500', 'bg-green-500', 'bg-purple-500');
+            qualityBar.classList.add('bg-yellow-500');
+        } else {
+            qualityBar.classList.remove('bg-red-500', 'bg-yellow-500', 'bg-purple-500');
+            qualityBar.classList.add('bg-green-500');
+        }
+        
+        // Set result message based on PSNR value
+        let qualityMessage;
+        if (psnrValue >= 40) {
+            qualityMessage = 'Excellent quality! The modifications are practically invisible.';
+        } else if (psnrValue >= 30) {
+            qualityMessage = 'Good quality. Modifications are difficult to detect.';
+        } else if (psnrValue >= 20) {
+            qualityMessage = 'Acceptable quality. Some degradation might be noticeable.';
+        } else {
+            qualityMessage = 'Poor quality. Modifications are likely noticeable.';
+        }
+        
+        resultMessage.innerHTML = `
+            <div class="p-4 rounded-lg font-bold border-2 border-purple-200 bg-purple-50 text-purple-800">
+                PSNR Analysis Complete: ${qualityMessage}
+            </div>
+        `;
+        
+        resultSection.classList.remove('hidden');
+    }
+    
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        
+        return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
     }
 }

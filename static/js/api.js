@@ -60,15 +60,34 @@ export class ApiService {
                 method: 'POST',
                 body: formData
             });
-
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Capacity calculation failed');
             }
+            return await response.json();
+
+        } catch (error) {
+            throw new Error(`Capacity calculation failed: ${error.message}`);
+
+        }
+    }
+
+    async calculatePSNR(formData) {
+        try {
+            const response = await fetch(`${this.BASE_URL}/psnr`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'PSNR calculation failed');
+            }
 
             return await response.json();
         } catch (error) {
-            throw new Error(`Capacity calculation failed: ${error.message}`);
+            
+            throw new Error(`PSNR calculation failed: ${error.message}`);
         }
     }
 }

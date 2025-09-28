@@ -17,6 +17,7 @@ func main() {
 	http.HandleFunc("/api/embed", middleware.CorsMiddleware(handlers.EmbedHandler))
 	http.HandleFunc("/api/extract", middleware.CorsMiddleware(handlers.ExtractHandler))
 	http.HandleFunc("/api/capacity", middleware.CorsMiddleware(handlers.CapacityHandler))
+	http.HandleFunc("/api/psnr", middleware.CorsMiddleware(handlers.PSNRHandler))
 
 	fs := http.FileServer(http.Dir("./static/"))
 	http.Handle("/", fs)
@@ -27,6 +28,7 @@ func main() {
 	fmt.Println("  POST   /api/embed    - Embed secret file into MP3")
 	fmt.Println("  POST   /api/extract  - Extract secret file from MP3")
 	fmt.Println("  POST   /api/capacity - Calculate MP3 embedding capacity")
+	fmt.Println("  POST   /api/psnr     - Calculate PSNR between original and modified MP3")
 	fmt.Println("Frontend available at: http://localhost:8080")
 
 	log.Fatal(http.ListenAndServe(":8080", nil))

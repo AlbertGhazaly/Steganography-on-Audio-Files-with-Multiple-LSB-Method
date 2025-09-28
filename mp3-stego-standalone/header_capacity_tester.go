@@ -36,10 +36,10 @@ var sampleRateTable = []int{
 
 // HeaderEmbeddingInfo contains information about embedding capacity in headers
 type HeaderEmbeddingInfo struct {
-	TotalFrames       int
-	UsableHeaderBits  int
-	SafeBitsPerFrame  int
-	TotalCapacityBits int
+	TotalFrames        int
+	UsableHeaderBits   int
+	SafeBitsPerFrame   int
+	TotalCapacityBits  int
 	TotalCapacityBytes int
 }
 
@@ -52,7 +52,7 @@ func main() {
 	}
 
 	mp3File := os.Args[1]
-	
+
 	err := analyzeMP3HeaderCapacity(mp3File)
 	if err != nil {
 		fmt.Printf("Error analyzing MP3: %v\n", err)
@@ -97,10 +97,10 @@ func analyzeMP3HeaderCapacity(mp3Path string) error {
 
 	// Analyze header embedding capacity (conservative)
 	conservativeInfo := analyzeHeaderEmbeddingCapacity(frames, offsets, mp3Data)
-	
+
 	// Analyze aggressive capacity
 	aggressiveInfo := analyzeAggressiveCapacity(frames)
-	
+
 	// Display detailed results
 	displayCapacityResults(conservativeInfo, aggressiveInfo)
 
@@ -118,12 +118,12 @@ func analyzeHeaderEmbeddingCapacity(frames []*MP3FrameHeader, offsets []int, mp3
 
 	// For each frame header (4 bytes), we can potentially use some bits
 	// We need to be very careful about which bits we can safely modify
-	
+
 	// Safe bits in MP3 frame header:
 	// Byte 0: Frame sync (0xFF) - DO NOT MODIFY
 	// Byte 1[7:5]: Frame sync continuation (111) - DO NOT MODIFY
 	// Byte 1[4:3]: Version - DO NOT MODIFY
-	// Byte 1[2:1]: Layer - DO NOT MODIFY  
+	// Byte 1[2:1]: Layer - DO NOT MODIFY
 	// Byte 1[0]: Protection bit - POTENTIALLY SAFE (CRC on/off)
 	// Byte 2[7:4]: Bitrate - DO NOT MODIFY
 	// Byte 2[3:2]: Sample rate - DO NOT MODIFY
@@ -137,7 +137,7 @@ func analyzeHeaderEmbeddingCapacity(frames []*MP3FrameHeader, offsets []int, mp3
 
 	// Conservative approach: Only use clearly safe bits
 	// - Private bit (1 bit per frame)
-	// - Copyright bit (1 bit per frame) 
+	// - Copyright bit (1 bit per frame)
 	// - Original bit (1 bit per frame)
 	// Total: 3 bits per frame header
 
@@ -154,16 +154,16 @@ func analyzeAggressiveCapacity(frames []*MP3FrameHeader) *HeaderEmbeddingInfo {
 	info := &HeaderEmbeddingInfo{
 		TotalFrames: len(frames),
 	}
-	
+
 	// More aggressive approach could include:
 	// - Private bit (1 bit) - SAFE
-	// - Copyright bit (1 bit) - SAFE  
+	// - Copyright bit (1 bit) - SAFE
 	// - Original bit (1 bit) - SAFE
 	// - Protection bit (1 bit) - RISKY but often unused
 	// - Padding bit (1 bit) - RISKY but sometimes safe
 	// - Emphasis bits (2 bits) - RISKY but rarely used
 	// Total: up to 7 bits per frame header
-	
+
 	aggressiveBits := 7 // All potentially usable bits
 	info.SafeBitsPerFrame = aggressiveBits
 	info.TotalCapacityBits = info.TotalFrames * aggressiveBits
@@ -176,12 +176,12 @@ func analyzeAggressiveCapacity(frames []*MP3FrameHeader) *HeaderEmbeddingInfo {
 func displayCapacityResults(conservative, aggressive *HeaderEmbeddingInfo) {
 	fmt.Printf("\n=== Header Embedding Capacity Analysis ===\n")
 	fmt.Printf("Total frames: %d\n", conservative.TotalFrames)
-	
+
 	fmt.Printf("\n--- CONSERVATIVE APPROACH (Recommended) ---\n")
 	fmt.Printf("Safe bits per frame: %d bits (Private, Copyright, Original)\n", conservative.SafeBitsPerFrame)
 	fmt.Printf("Total available bits: %d bits\n", conservative.TotalCapacityBits)
 	fmt.Printf("Total capacity: %s\n", formatBytes(conservative.TotalCapacityBytes))
-	
+
 	fmt.Printf("\n--- AGGRESSIVE APPROACH (Risky) ---\n")
 	fmt.Printf("Usable bits per frame: %d bits (includes Protection, Padding, Emphasis)\n", aggressive.SafeBitsPerFrame)
 	fmt.Printf("Total available bits: %d bits\n", aggressive.TotalCapacityBits)
@@ -189,13 +189,13 @@ func displayCapacityResults(conservative, aggressive *HeaderEmbeddingInfo) {
 
 	fmt.Printf("\n=== Capacity Comparison ===\n")
 	fmt.Printf("File Type              Conservative    Aggressive\n")
-	fmt.Printf("Small text (1KB)       %s           %s\n", 
+	fmt.Printf("Small text (1KB)       %s           %s\n",
 		getCapacityEstimate(conservative.TotalCapacityBytes, 1024),
 		getCapacityEstimate(aggressive.TotalCapacityBytes, 1024))
-	fmt.Printf("Medium document (10KB) %s           %s\n", 
+	fmt.Printf("Medium document (10KB) %s           %s\n",
 		getCapacityEstimate(conservative.TotalCapacityBytes, 10*1024),
 		getCapacityEstimate(aggressive.TotalCapacityBytes, 10*1024))
-	fmt.Printf("Large document (100KB) %s           %s\n", 
+	fmt.Printf("Large document (100KB) %s           %s\n",
 		getCapacityEstimate(conservative.TotalCapacityBytes, 100*1024),
 		getCapacityEstimate(aggressive.TotalCapacityBytes, 100*1024))
 
@@ -219,19 +219,19 @@ func formatBytes(bytes int) string {
 // showFrameBreakdown shows detailed info for sample frames
 func showFrameBreakdown(frames []*MP3FrameHeader, offsets []int, mp3Data []byte) {
 	fmt.Printf("\n=== Sample Frame Analysis ===\n")
-	
+
 	for i, frame := range frames {
 		offset := offsets[i]
 		fmt.Printf("Frame %d (offset %d):\n", i+1, offset)
 		fmt.Printf("  Size: %d bytes\n", frame.Size)
 		fmt.Printf("  Bitrate: %d kbps\n", bitrateTable[frame.Bitrate])
 		fmt.Printf("  Channel: %s\n", getChannelMode(frame.Channel))
-		
+
 		// Show header bytes
 		if offset+4 <= len(mp3Data) {
-			fmt.Printf("  Header bytes: %02X %02X %02X %02X\n", 
+			fmt.Printf("  Header bytes: %02X %02X %02X %02X\n",
 				mp3Data[offset], mp3Data[offset+1], mp3Data[offset+2], mp3Data[offset+3])
-			
+
 			// Show which bits we could potentially modify
 			fmt.Printf("  Safe bits: Private=%d, Copyright=%d, Original=%d\n",
 				frame.Private, frame.Copyright, frame.Original)
@@ -293,14 +293,14 @@ func skipID3Tag(data []byte) int {
 	if len(data) < 10 {
 		return 0
 	}
-	
+
 	// Check for ID3v2 tag
 	if data[0] == 'I' && data[1] == 'D' && data[2] == '3' {
 		// Get tag size (synchsafe integer)
 		size := int(data[6])<<21 | int(data[7])<<14 | int(data[8])<<7 | int(data[9])
 		return 10 + size // Header + tag size
 	}
-	
+
 	return 0
 }
 
@@ -316,10 +316,10 @@ func parseMP3Frame(data []byte, offset int) (*MP3FrameHeader, error) {
 	}
 
 	header := &MP3FrameHeader{}
-	
+
 	// Parse header bytes
 	b1, b2, b3, b4 := data[offset], data[offset+1], data[offset+2], data[offset+3]
-	
+
 	header.Sync = uint16(b1)<<3 | uint16(b2>>5)
 	header.Version = (b2 >> 3) & 0x03
 	header.Layer = (b2 >> 1) & 0x03
@@ -338,11 +338,11 @@ func parseMP3Frame(data []byte, offset int) (*MP3FrameHeader, error) {
 	if header.Version == 3 && header.Layer == 1 { // MPEG1 Layer 3
 		bitrate := bitrateTable[header.Bitrate] * 1000
 		sampleRate := sampleRateTable[header.SampleRate]
-		
+
 		if bitrate == 0 || sampleRate == 0 {
 			return nil, fmt.Errorf("invalid bitrate or sample rate")
 		}
-		
+
 		header.Size = (144*bitrate)/sampleRate + int(header.Padding)
 	} else {
 		return nil, fmt.Errorf("unsupported MP3 format (only MPEG1 Layer 3 supported)")
@@ -355,7 +355,7 @@ func parseMP3Frame(data []byte, offset int) (*MP3FrameHeader, error) {
 func findMP3Frames(data []byte) ([]*MP3FrameHeader, []int, error) {
 	var frames []*MP3FrameHeader
 	var offsets []int
-	
+
 	i := 0
 	for i < len(data)-4 {
 		// Look for frame sync
@@ -372,6 +372,6 @@ func findMP3Frames(data []byte) ([]*MP3FrameHeader, []int, error) {
 			i++
 		}
 	}
-	
+
 	return frames, offsets, nil
 }

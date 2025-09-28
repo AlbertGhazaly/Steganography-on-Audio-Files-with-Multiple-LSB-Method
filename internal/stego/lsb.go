@@ -173,47 +173,35 @@ func (l *LSBSteganography) ExtractMessage(mp3Data []byte, bits int) ([]byte, err
 	return message, nil
 }
 
-// extractData extracts hidden data from the carrier
 func (l *LSBSteganography) extractData(carrier, output []byte, bits int) {
-	// Create a bit mask for the specified number of bits
 	mask := byte((1 << bits) - 1)
 
-	// Initialize output buffer
 	for i := range output {
 		output[i] = 0
 	}
 
-	// Track current position
 	totalOutBits := len(output) * 8
 	currentOutBit := 0
 
-	// Process each carrier byte
 	for i := 0; i < len(carrier) && currentOutBit < totalOutBits; i++ {
-		// Extract the least significant bits
 		extractedBits := carrier[i] & mask
 
-		// Determine where these bits go in the output
 		outByteIndex := currentOutBit / 8
 		outBitOffset := currentOutBit % 8
 
 		if outBitOffset+bits <= 8 {
-			// Simple case: All bits fit in the current output byte
 			output[outByteIndex] |= extractedBits << (8 - outBitOffset - bits)
 		} else {
-			// Complex case: Bits need to be split between two output bytes
 			firstPartBits := 8 - outBitOffset
 			secondPartBits := bits - firstPartBits
 
-			// Add first part to current byte
 			output[outByteIndex] |= (extractedBits >> secondPartBits) & ((1 << firstPartBits) - 1)
 
-			// Add second part to next byte if available
 			if outByteIndex+1 < len(output) {
 				output[outByteIndex+1] |= (extractedBits & ((1 << secondPartBits) - 1)) << (8 - secondPartBits)
 			}
 		}
 
-		// Move to next position
 		currentOutBit += bits
 	}
 }
