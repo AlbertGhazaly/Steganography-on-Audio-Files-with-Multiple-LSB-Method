@@ -126,16 +126,25 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="mb-4">
-                    <label for="embed-key" class="block mb-2 font-bold text-gray-600">Steganography Key</label>
-                    <input type="text" id="embed-key" name="key" placeholder="Enter your secret key (ASCII characters 0-255)..." required 
+                    <label for="embed-method" class="block mb-2 font-bold text-gray-600">Steganography Method</label>
+                    <select id="embed-method" name="method" required 
+                            class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 bg-white">
+                        <option value="header">Header Steganography</option>
+                        <option value="lsb">LSB Steganography</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4" id="embed-key-section">
+                    <label for="embed-key" class="block mb-2 font-bold text-gray-600">Steganography Key <span id="key-required-indicator">(Required for LSB)</span></label>
+                    <input type="text" id="embed-key" name="key" placeholder="Enter your secret key (ASCII characters 0-255)..." 
                            class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500">
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-4 hidden" id="embed-lsb-section">
                     <label for="embed-lsb" class="block mb-2 font-bold text-gray-600">LSB Bits</label>
-                    <select id="embed-lsb" name="lsb_bits" required 
+                    <select id="embed-lsb" name="lsb_bits" 
                             class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 bg-white">
                         <option value="1">1 bit</option>
                         <option value="2">2 bits</option>
@@ -144,7 +153,7 @@
                     </select>
                 </div>
 
-                <div class="mb-6 flex flex-row justify-center gap-10">
+                <div class="mb-6 flex flex-row justify-center gap-10 hidden" id="embed-lsb-options">
                     <div class="flex items-center gap-3 mb-4">
                         <label class="toggle">
                             <input type="checkbox" id="embed-encryption" name="use_encryption">
@@ -185,16 +194,25 @@
                         </audio>
                     </div>
                 </div>
-                
+
                 <div class="mb-4">
-                    <label for="extract-key" class="block mb-2 font-bold text-gray-600">Steganography Key</label>
-                    <input type="text" id="extract-key" name="key" placeholder="Enter the secret key (ASCII characters 0-255)..." required 
+                    <label for="extract-method" class="block mb-2 font-bold text-gray-600">Steganography Method</label>
+                    <select id="extract-method" name="method" required 
+                            class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 bg-white">
+                        <option value="header">Header Steganography</option>
+                        <option value="lsb">LSB Steganography</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4" id="extract-key-section">
+                    <label for="extract-key" class="block mb-2 font-bold text-gray-600">Steganography Key <span id="extract-key-required-indicator">(Required for LSB)</span></label>
+                    <input type="text" id="extract-key" name="key" placeholder="Enter the secret key (ASCII characters 0-255)..." 
                            class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500">
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-4 hidden" id="extract-lsb-section">
                     <label for="extract-lsb" class="block mb-2 font-bold text-gray-600">LSB Bits</label>
-                    <select id="extract-lsb" name="lsb_bits" required 
+                    <select id="extract-lsb" name="lsb_bits" 
                             class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 bg-white">
                         <option value="1">1 bit</option>
                         <option value="2">2 bits</option>
@@ -203,7 +221,7 @@
                     </select>
                 </div>
 
-                <div class="mb-6 flex flex-row justify-center gap-10">
+                <div class="mb-6 flex flex-row justify-center gap-10 hidden" id="extract-lsb-options">
                     <div class="flex items-center gap-3 mb-4">
                         <label class="toggle">
                             <input type="checkbox" id="extract-encryption" name="use_encryption">

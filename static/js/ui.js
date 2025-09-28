@@ -1,4 +1,3 @@
-// UI module for handling user interface interactions
 export class UIManager {
     constructor() {
         this.currentStegoBlob = null;
@@ -216,7 +215,6 @@ export class UIManager {
             capacityFrames.textContent = capacityData.frame_count + ' frames';
             capacityDiv.classList.remove('hidden');
             
-            // Store capacity for later validation
             this.currentCapacity = capacityData.capacity_bytes;
         } else {
             capacityDiv.classList.add('hidden');
@@ -238,10 +236,10 @@ export class UIManager {
             const sizeDiff = ((secretFileSize - this.currentCapacity) / 1024).toFixed(2);
             warningText.textContent = `The secret file (${(secretFileSize/1024).toFixed(2)} KB) is ${sizeDiff} KB larger than the MP3 capacity (${(this.currentCapacity/1024).toFixed(2)} KB).`;
             warningDiv.classList.remove('hidden');
-            return false; // File too large
+            return false;
         } else {
             warningDiv.classList.add('hidden');
-            return true; // File fits
+            return true;
         }
     }
 
@@ -261,25 +259,20 @@ export class UIManager {
         extractResult.classList.add('hidden');
         psnrResult.classList.remove('hidden');
         
-        // Format PSNR value to 2 decimal places
         const psnrValue = psnrData.psnr.toFixed(2);
         document.getElementById('psnr-value').textContent = `${psnrValue} dB`;
         
-        // Format MSE to 6 decimal places
         document.getElementById('mse-value').textContent = psnrData.mse.toFixed(6);
         
-        // Display other metrics
         document.getElementById('max-signal-value').textContent = psnrData.max_signal.toFixed(0);
         document.getElementById('original-size').textContent = this.formatBytes(psnrData.original_size);
         document.getElementById('modified-size').textContent = this.formatBytes(psnrData.modified_size);
         
-        // Update quality bar
         const qualityPercentage = Math.min(100, Math.max(0, (psnrValue / 50) * 100));
         const qualityBar = document.getElementById('psnr-quality-bar');
         qualityBar.style.width = `${qualityPercentage}%`;
         qualityBar.textContent = `${Math.round(qualityPercentage)}%`;
         
-        // Set bar color based on PSNR value
         if (psnrValue < 20) {
             qualityBar.classList.remove('bg-yellow-500', 'bg-green-500', 'bg-purple-500');
             qualityBar.classList.add('bg-red-500');
@@ -291,7 +284,6 @@ export class UIManager {
             qualityBar.classList.add('bg-green-500');
         }
         
-        // Set result message based on PSNR value
         let qualityMessage;
         if (psnrValue >= 40) {
             qualityMessage = 'Excellent quality! The modifications are practically invisible.';

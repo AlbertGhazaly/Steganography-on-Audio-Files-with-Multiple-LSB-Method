@@ -22,7 +22,6 @@ func NewErrorResponse(message string) *HeaderResponse {
 	}
 }
 
-// Legacy LSB functions for backward compatibility
 type LSBResponse struct {
 	Success      bool   `json:"success"`
 	Message      string `json:"message"`
@@ -39,7 +38,6 @@ func CalculateCapacity(mp3FileSize, bits int) int {
 	return capacityInBits / 8
 }
 
-// PaperCalculateCapacity for legacy compatibility
 func PaperCalculateCapacity(mp3FileSize, bits int) int {
-	return CalculateCapacity(mp3FileSize, bits) - 100 // Account for signature overhead
+	return CalculateCapacity(mp3FileSize, bits) - 100
 }

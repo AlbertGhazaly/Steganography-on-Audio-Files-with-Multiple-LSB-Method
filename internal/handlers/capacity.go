@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/stego"
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/utils"
@@ -27,10 +28,28 @@ func CapacityHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(100 << 20) // 100 MB limit
+	err := r.ParseMultipartForm(100 << 20)
 	if err != nil {
 		utils.SendError(w, "Failed to parse form data", http.StatusBadRequest)
 		return
+	}
+
+	method := r.FormValue("method")
+	if method == "" {
+		method = "header"
+	}
+
+	var lsbBits int
+	if method == "lsb" {
+		lsbBitsStr := r.FormValue("lsb_bits")
+		if lsbBitsStr != "" {
+			lsbBits, err = strconv.Atoi(lsbBitsStr)
+			if err != nil || lsbBits < 1 || lsbBits > 4 {
+				lsbBits = 1
+			}
+		} else {
+			lsbBits = 1
+		}
 	}
 
 	mp3File, mp3Header, err := r.FormFile("mp3_file")
@@ -65,11 +84,22 @@ func CapacityHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	headerStego := stego.NewHeaderSteganography()
-	capacity, frameCount, err := headerStego.CalculateCapacity(mp3Data)
-	if err != nil {
-		utils.SendError(w, "Failed to calculate capacity: "+err.Error(), http.StatusInternalServerError)
-		return
+	var capacity, frameCount int
+	var methodName string
+
+	if method == "header" {
+		headerStego := stego.NewHeaderSteganography()
+		capacity, frameCount, err = headerStego.CalculateCapacity(mp3Data)
+		if err != nil {
+			utils.SendError(w, "Failed to calculate header capacity: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		methodName = "MP3 Header Steganography"
+	} else {
+		capacity = stego.CalculateCapacity(len(mp3Data), lsbBits)
+		capacity -= 4
+		frameCount = 0
+		methodName = fmt.Sprintf("LSB Steganography (%d bits)", lsbBits)
 	}
 
 	capacityReadable := formatBytes(capacity)
@@ -80,7 +110,7 @@ func CapacityHandler(w http.ResponseWriter, r *http.Request) {
 		CapacityBytes:    capacity,
 		CapacityReadable: capacityReadable,
 		FrameCount:       frameCount,
-		Method:           "MP3 Header Steganography",
+		Method:           methodName,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

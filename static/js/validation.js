@@ -1,4 +1,3 @@
-// Validation module for form inputs
 export class ValidationService {
     static validateKey(input) {
         let value = input.value;

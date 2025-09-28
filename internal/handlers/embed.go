@@ -28,14 +28,25 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 
 	key := r.FormValue("key")
 	useEncryption := r.FormValue("use_encryption") == "true"
-	// useKeyForPosition := r.FormValue("use_key_for_position") == "true"
-	// mode := r.FormValue("mode")
-	lsbBitsStr := r.FormValue("lsb_bits")
+	_ = r.FormValue("use_key_for_position")
+	method := r.FormValue("method")
+	if method == "" {
+		method = "header"
+	}
 
-	lsbBits, err := strconv.Atoi(lsbBitsStr)
-	if err != nil || lsbBits < 1 || lsbBits > 4 {
-		utils.SendError(w, "LSB bits must be between 1 and 4", http.StatusBadRequest)
-		return
+	var lsbBits int
+	if method == "lsb" {
+		lsbBitsStr := r.FormValue("lsb_bits")
+		lsbBits, err = strconv.Atoi(lsbBitsStr)
+		if err != nil || lsbBits < 1 || lsbBits > 4 {
+			utils.SendError(w, "LSB bits must be between 1 and 4", http.StatusBadRequest)
+			return
+		}
+
+		if key == "" {
+			utils.SendError(w, "Key is required for LSB steganography", http.StatusBadRequest)
+			return
+		}
 	}
 
 	mp3File, mp3Header, err := r.FormFile("mp3_file")
@@ -99,33 +110,22 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if useEncryption && key != "" {
-		// println("use encryption")
 		secretData = crypto.VigenereEncrypt(secretData, key)
 	}
-	headerStego := stego.NewHeaderSteganography()
-	embeddedData, err := headerStego.EmbedMessage(mp3Data, secretData, secretHeader.Filename)
 
-	// if mode == "" {
-	// 	mode = "paper"
-	// }
-	// var embeddedData []byte
-	// if mode == "paper" {
-	// 	capacity := stego.PaperCalculateCapacity(len(mp3Data), lsbBits)
-	// 	if len(secretData) > capacity {
-	// 		utils.SendError(w, fmt.Sprintf("Secret file too large to embed with %d LSB bits (paper mode)", lsbBits), http.StatusBadRequest)
-	// 		return
-	// 	}
-	// 	paper := stego.NewPaperLSBSteganography()
-	// 	embeddedData, err = paper.EmbedMessagePaper(mp3Data, secretData, lsbBits, key, useKeyForPosition)
-	// } else {
-	// 	capacity := stego.CalculateCapacity(len(mp3Data), lsbBits)
-	// 	if len(secretData)+4 > capacity {
-	// 		utils.SendError(w, fmt.Sprintf("Secret file too large to embed with %d LSB bits", lsbBits), http.StatusBadRequest)
-	// 		return
-	// 	}
-	// 	stegoProcessor := stego.NewLSBSteganography()
-	// 	embeddedData, err = stegoProcessor.EmbedMessage(mp3Data, secretData, lsbBits)
-	// }
+	var embeddedData []byte
+	if method == "header" {
+		headerStego := stego.NewHeaderSteganography()
+		embeddedData, err = headerStego.EmbedMessage(mp3Data, secretData, secretHeader.Filename)
+	} else {
+		capacity := stego.CalculateCapacity(len(mp3Data), lsbBits)
+		if len(secretData)+4 > capacity {
+			utils.SendError(w, fmt.Sprintf("Secret file too large to embed with %d LSB bits", lsbBits), http.StatusBadRequest)
+			return
+		}
+		lsbStego := stego.NewLSBSteganography()
+		embeddedData, err = lsbStego.EmbedMessage(mp3Data, secretData, lsbBits)
+	}
 	if err != nil {
 		utils.SendError(w, "Failed to embed secret data: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -137,6 +137,6 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(embeddedData)
 
-	log.Printf("Embed operation: method=header, mp3=%s, secret=%s",
-		mp3Header.Filename, secretHeader.Filename)
+	log.Printf("Embed operation: method=%s, mp3=%s, secret=%s",
+		method, mp3Header.Filename, secretHeader.Filename)
 }

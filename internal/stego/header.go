@@ -7,22 +7,21 @@ import (
 	"path/filepath"
 )
 
-// MP3FrameHeader represents an MP3 frame header
 type MP3FrameHeader struct {
-	Sync       uint16 // Frame sync (11 bits)
-	Version    uint8  // MPEG Audio version
-	Layer      uint8  // Layer description
-	Protection uint8  // Protection bit
-	Bitrate    uint8  // Bitrate index
-	SampleRate uint8  // Sampling rate frequency index
-	Padding    uint8  // Padding bit
-	Private    uint8  // Private bit
-	Channel    uint8  // Channel Mode
-	ModeExt    uint8  // Mode extension
-	Copyright  uint8  // Copyright
-	Original   uint8  // Original
-	Emphasis   uint8  // Emphasis
-	Size       int    // Frame size in bytes
+	Sync       uint16
+	Version    uint8
+	Layer      uint8
+	Protection uint8
+	Bitrate    uint8
+	SampleRate uint8
+	Padding    uint8
+	Private    uint8
+	Channel    uint8
+	ModeExt    uint8
+	Copyright  uint8
+	Original   uint8
+	Emphasis   uint8
+	Size       int
 }
 
 type HeaderSteganography struct{}
@@ -55,9 +54,8 @@ func (h *HeaderSteganography) EmbedMessage(mp3Data, message []byte, filename str
 		offsets[i] += dataStart
 	}
 
-	// Check capacity
 	capacity := h.calculateHeaderCapacity(frames)
-	requiredSize := len(message) + 8 // +8 bytes for length and filename info
+	requiredSize := len(message) + 8
 
 	if requiredSize > capacity {
 		return nil, fmt.Errorf("secret file too large: need %d bytes, have %d bytes capacity",
@@ -100,25 +98,19 @@ func (h *HeaderSteganography) embedDataInHeaders(mp3Data []byte, secretData []by
 	result := make([]byte, len(mp3Data))
 	copy(result, mp3Data)
 
-	// Prepare payload: 4-byte length + 4-byte filename length + filename + data
 	filenameBytes := []byte(filename)
 	if len(filenameBytes) > 255 {
-		filenameBytes = filenameBytes[:255] // Limit filename length
+		filenameBytes = filenameBytes[:255]
 	}
 
 	payload := make([]byte, 0)
-	// Add data length (4 bytes)
 	dataLen := len(secretData)
 	payload = append(payload, byte(dataLen>>24), byte(dataLen>>16), byte(dataLen>>8), byte(dataLen))
-	// Add filename length (4 bytes)
 	filenameLen := len(filenameBytes)
 	payload = append(payload, byte(filenameLen>>24), byte(filenameLen>>16), byte(filenameLen>>8), byte(filenameLen))
-	// Add filename
 	payload = append(payload, filenameBytes...)
-	// Add actual data
 	payload = append(payload, secretData...)
 
-	// Embed payload into frame headers
 	bitIndex := 0
 	payloadIndex := 0
 
@@ -129,20 +121,14 @@ func (h *HeaderSteganography) embedDataInHeaders(mp3Data []byte, secretData []by
 
 		frameOffset := offsets[frameIdx]
 
-		// Embed in the 4-byte header using safe bits:
-		// Byte 2, bit 0: Private bit
-		// Byte 3, bit 3: Copyright bit
-		// Byte 3, bit 2: Original bit
-		// Total: 3 bits per frame
-
 		safeBitPositions := []struct {
 			offset int
 			mask   byte
 			shift  int
 		}{
-			{2, 0x01, 0}, // Private bit (byte 2, bit 0)
-			{3, 0x08, 3}, // Copyright bit (byte 3, bit 3)
-			{3, 0x04, 2}, // Original bit (byte 3, bit 2)
+			{2, 0x01, 0},
+			{3, 0x08, 3},
+			{3, 0x04, 2},
 		}
 
 		for _, pos := range safeBitPositions {
@@ -150,11 +136,9 @@ func (h *HeaderSteganography) embedDataInHeaders(mp3Data []byte, secretData []by
 				break
 			}
 
-			// Get the bit to embed
 			payloadByte := payload[payloadIndex]
 			bitToEmbed := (payloadByte >> (7 - bitIndex)) & 1
 
-			// Clear the target bit and set our bit
 			byteOffset := frameOffset + pos.offset
 			result[byteOffset] = (result[byteOffset] & ^pos.mask) | (bitToEmbed << pos.shift)
 
@@ -178,7 +162,7 @@ func (h *HeaderSteganography) extractDataFromHeaders(mp3Data []byte, frames []*M
 	bitIndex := 0
 	currentByte := byte(0)
 
-	state := "metadata" // metadata -> filename -> data
+	state := "metadata"
 	metadataBytes := 0
 	dataLength := 0
 	filenameLength := 0
@@ -191,9 +175,9 @@ func (h *HeaderSteganography) extractDataFromHeaders(mp3Data []byte, frames []*M
 		mask   byte
 		shift  int
 	}{
-		{2, 0x01, 0}, // Private bit (byte 2, bit 0)
-		{3, 0x08, 3}, // Copyright bit (byte 3, bit 3)
-		{3, 0x04, 2}, // Original bit (byte 3, bit 2)
+		{2, 0x01, 0},
+		{3, 0x08, 3},
+		{3, 0x04, 2},
 	}
 
 	for frameIdx := range frames {
@@ -252,8 +236,7 @@ func (h *HeaderSteganography) extractDataFromHeaders(mp3Data []byte, frames []*M
 }
 
 func (h *HeaderSteganography) calculateHeaderCapacity(frames []*MP3FrameHeader) int {
-	// 3 safe bits per frame header (Private, Copyright, Original)
-	return (len(frames) * 3) / 8 // Convert bits to bytes
+	return (len(frames) * 3) / 8
 }
 
 func (h *HeaderSteganography) CalculateCapacity(mp3Data []byte) (int, int, error) {
@@ -268,10 +251,8 @@ func (h *HeaderSteganography) CalculateCapacity(mp3Data []byte) (int, int, error
 		return 0, 0, fmt.Errorf("no valid MP3 frames found")
 	}
 
-	// Calculate raw capacity
 	rawCapacity := h.calculateHeaderCapacity(frames)
 
-	// Subtract 8 bytes for metadata (4 bytes data length + 4 bytes filename length)
 	actualCapacity := rawCapacity - 8
 	if actualCapacity < 0 {
 		actualCapacity = 0
@@ -358,7 +339,6 @@ func (h *HeaderSteganography) findMP3Frames(data []byte) ([]*MP3FrameHeader, []i
 	return frames, offsets, nil
 }
 
-// Helper functions for file I/O
 func readFile(path string) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {

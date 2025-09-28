@@ -18,6 +18,9 @@ class SteganographyApp {
         this.setupEventListeners();
 
         this.setupFormHandlers();
+
+        this.handleMethodChange('embed', 'header');
+        this.handleMethodChange('extract', 'header');
     }
 
     async checkConnection() {
@@ -40,6 +43,20 @@ class SteganographyApp {
         });
         document.getElementById('extract-key').addEventListener('input', function() {
             ValidationService.validateKey(this);
+        });
+
+        document.getElementById('embed-method').addEventListener('change', function() {
+            app.handleMethodChange('embed', this.value);
+        });
+        document.getElementById('extract-method').addEventListener('change', function() {
+            app.handleMethodChange('extract', this.value);
+        });
+
+        document.getElementById('embed-lsb').addEventListener('change', function() {
+            const mp3FileInput = document.getElementById('embed-mp3-file');
+            if (mp3FileInput.files[0]) {
+                app.calculateCapacity(mp3FileInput.files[0], 'lsb');
+            }
         });
 
         document.getElementById('embed-mp3-file').addEventListener('change', async function() {
@@ -184,15 +201,26 @@ class SteganographyApp {
         }
     }
 
-    async calculateCapacity(mp3File) {
+    async calculateCapacity(mp3File, method = null) {
         try {
             const formData = new FormData();
             formData.append('mp3_file', mp3File);
             
+            if (!method) {
+                const methodSelect = document.getElementById('embed-method');
+                method = methodSelect ? methodSelect.value : 'header';
+            }
+            formData.append('method', method);
+            
+            if (method === 'lsb') {
+                const lsbSelect = document.getElementById('embed-lsb');
+                const lsbBits = lsbSelect ? lsbSelect.value : '1';
+                formData.append('lsb_bits', lsbBits);
+            }
+            
             const capacityData = await this.api.getCapacity(formData);
             this.ui.showCapacityInfo(capacityData);
             
-            // Re-check capacity warning if secret file is already selected
             const secretFileInput = document.getElementById('embed-secret-file');
             if (secretFileInput.files[0]) {
                 this.ui.checkCapacityWarning(secretFileInput.files[0].size);
@@ -208,7 +236,6 @@ class SteganographyApp {
         
         const form = event.target;
         
-        // Validate original file
         const originalFileValidation = ValidationService.validateFile(
             document.getElementById('psnr-original-file'), 'mp3'
         );
@@ -217,7 +244,6 @@ class SteganographyApp {
             return;
         }
         
-        // Validate modified file
         const modifiedFileValidation = ValidationService.validateFile(
             document.getElementById('psnr-modified-file'), 'mp3'
         );
@@ -237,6 +263,54 @@ class SteganographyApp {
         } catch (error) {
             console.error('Error calculating PSNR:', error);
             this.ui.showResult('Error: ' + error.message, true);
+        }
+    }
+
+    handleMethodChange(section, method) {
+        const lsbSection = document.getElementById(`${section}-lsb-section`);
+        const lsbOptions = document.getElementById(`${section}-lsb-options`);
+        const keyInput = document.getElementById(`${section}-key`);
+        const keyRequiredIndicator = document.getElementById(`${section}-key-required-indicator`);
+        
+        if (method === 'lsb') {
+            lsbSection?.classList.remove('hidden');
+            lsbOptions?.classList.remove('hidden');
+            
+            keyInput.required = true;
+            if (keyRequiredIndicator) {
+                keyRequiredIndicator.textContent = '(Required for LSB)';
+                keyRequiredIndicator.style.color = '#dc2626';
+            }
+            
+            if (section === 'embed') {
+                const description = document.getElementById('method-description');
+                if (description) {
+                    description.textContent = 'LSB method embeds data by modifying the least significant bits of audio samples - offers more capacity but less stealth.';
+                }
+            }
+        } else {
+            lsbSection?.classList.add('hidden');
+            lsbOptions?.classList.add('hidden');
+            
+            keyInput.required = false;
+            if (keyRequiredIndicator) {
+                keyRequiredIndicator.textContent = '(Optional for Header)';
+                keyRequiredIndicator.style.color = '#6b7280';
+            }
+            
+            if (section === 'embed') {
+                const description = document.getElementById('method-description');
+                if (description) {
+                    description.textContent = 'Header method embeds data in MP3 frame headers - more stealthy and robust.';
+                }
+            }
+        }
+
+        if (section === 'embed') {
+            const mp3FileInput = document.getElementById('embed-mp3-file');
+            if (mp3FileInput.files[0]) {
+                this.calculateCapacity(mp3FileInput.files[0], method);
+            }
         }
     }
 }

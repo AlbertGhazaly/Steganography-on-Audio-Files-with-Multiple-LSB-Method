@@ -1,4 +1,3 @@
-// File handling module for downloads and file operations
 export class FileHandler {
     constructor(uiManager) {
         this.ui = uiManager;
@@ -34,7 +33,7 @@ export class FileHandler {
                 if (err.name !== 'AbortError') {
                     console.error('Error saving file:', err);
                 }
-                return; // User cancelled or error occurred
+                return;
             }
         }
         
@@ -72,7 +71,7 @@ export class FileHandler {
                 if (err.name !== 'AbortError') {
                     console.error('Error saving file:', err);
                 }
-                return; // User cancelled or error occurred
+                return;
             }
         }
         

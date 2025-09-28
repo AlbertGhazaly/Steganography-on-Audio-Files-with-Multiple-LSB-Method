@@ -19,7 +19,7 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(100 << 20) // 100 MB limit
+	err := r.ParseMultipartForm(100 << 20)
 	if err != nil {
 		utils.SendError(w, "Failed to parse form data", http.StatusBadRequest)
 		return
@@ -27,17 +27,25 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 
 	key := r.FormValue("key")
 	useEncryption := r.FormValue("use_encryption") == "true"
-	// useKeyForPosition := r.FormValue("use_key_for_position") == "true"
-	mode := r.FormValue("mode")
-	if mode == "" {
-		mode = "paper"
+	_ = r.FormValue("use_key_for_position")
+	method := r.FormValue("method")
+	if method == "" {
+		method = "header"
 	}
-	lsbBitsStr := r.FormValue("lsb_bits")
 
-	lsbBits, err := strconv.Atoi(lsbBitsStr)
-	if err != nil || lsbBits < 1 || lsbBits > 4 {
-		utils.SendError(w, "LSB bits must be between 1 and 4", http.StatusBadRequest)
-		return
+	var lsbBits int
+	if method == "lsb" {
+		lsbBitsStr := r.FormValue("lsb_bits")
+		lsbBits, err = strconv.Atoi(lsbBitsStr)
+		if err != nil || lsbBits < 1 || lsbBits > 4 {
+			utils.SendError(w, "LSB bits must be between 1 and 4", http.StatusBadRequest)
+			return
+		}
+
+		if key == "" {
+			utils.SendError(w, "Key is required for LSB steganography", http.StatusBadRequest)
+			return
+		}
 	}
 
 	mp3File, mp3Header, err := r.FormFile("mp3_file")
@@ -72,9 +80,14 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use header-based steganography instead of LSB
-	headerStego := stego.NewHeaderSteganography()
-	extractedData, err := headerStego.ExtractMessage(mp3Data)
+	var extractedData []byte
+	if method == "header" {
+		headerStego := stego.NewHeaderSteganography()
+		extractedData, err = headerStego.ExtractMessage(mp3Data)
+	} else {
+		lsbStego := stego.NewLSBSteganography()
+		extractedData, err = lsbStego.ExtractMessage(mp3Data, lsbBits)
+	}
 	if err != nil {
 		utils.SendError(w, "Failed to extract secret data: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -92,5 +105,5 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(extractedData)
 
-	log.Printf("Extract operation: method=header, mp3=%s", mp3Header.Filename)
+	log.Printf("Extract operation: method=%s, mp3=%s", method, mp3Header.Filename)
 }

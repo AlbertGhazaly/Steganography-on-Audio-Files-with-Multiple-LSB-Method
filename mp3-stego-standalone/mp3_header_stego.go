@@ -7,30 +7,27 @@ import (
 	"path/filepath"
 )
 
-// MP3FrameHeader represents an MP3 frame header
 type MP3FrameHeader struct {
-	Sync       uint16 // Frame sync (11 bits)
-	Version    uint8  // MPEG Audio version
-	Layer      uint8  // Layer description
-	Protection uint8  // Protection bit
-	Bitrate    uint8  // Bitrate index
-	SampleRate uint8  // Sampling rate frequency index
-	Padding    uint8  // Padding bit
-	Private    uint8  // Private bit
-	Channel    uint8  // Channel Mode
-	ModeExt    uint8  // Mode extension
-	Copyright  uint8  // Copyright
-	Original   uint8  // Original
-	Emphasis   uint8  // Emphasis
-	Size       int    // Frame size in bytes
+	Sync       uint16
+	Version    uint8
+	Layer      uint8
+	Protection uint8
+	Bitrate    uint8
+	SampleRate uint8
+	Padding    uint8
+	Private    uint8
+	Channel    uint8
+	ModeExt    uint8
+	Copyright  uint8
+	Original   uint8
+	Emphasis   uint8
+	Size       int
 }
 
-// Bitrate table for MPEG1 Layer 3
 var bitrateTable = []int{
 	0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0,
 }
 
-// Sample rate table for MPEG1
 var sampleRateTable = []int{
 	44100, 48000, 32000, 0,
 }
@@ -79,15 +76,12 @@ func main() {
 	}
 }
 
-// embedIntoHeaders embeds a secret file into MP3 frame headers
 func embedIntoHeaders(mp3Path, secretPath, outputPath string) error {
-	// Read MP3 file
 	mp3Data, err := readFile(mp3Path)
 	if err != nil {
 		return fmt.Errorf("failed to read MP3 file: %v", err)
 	}
 
-	// Read secret file
 	secretData, err := readFile(secretPath)
 	if err != nil {
 		return fmt.Errorf("failed to read secret file: %v", err)
@@ -96,13 +90,11 @@ func embedIntoHeaders(mp3Path, secretPath, outputPath string) error {
 	fmt.Printf("MP3 file: %s (%d bytes)\n", mp3Path, len(mp3Data))
 	fmt.Printf("Secret file: %s (%d bytes)\n", secretPath, len(secretData))
 
-	// Skip ID3 tag if present
 	dataStart := skipID3Tag(mp3Data)
 	if dataStart > 0 {
 		fmt.Printf("Skipped ID3 tag: %d bytes\n", dataStart)
 	}
 
-	// Parse MP3 frames
 	frames, offsets, err := findMP3Frames(mp3Data[dataStart:])
 	if err != nil {
 		return fmt.Errorf("failed to parse MP3 frames: %v", err)
@@ -112,16 +104,14 @@ func embedIntoHeaders(mp3Path, secretPath, outputPath string) error {
 		return fmt.Errorf("no valid MP3 frames found")
 	}
 
-	// Adjust offsets for ID3 tag skip
 	for i := range offsets {
 		offsets[i] += dataStart
 	}
 
 	fmt.Printf("Found %d MP3 frames\n", len(frames))
 
-	// Check capacity
 	capacity := calculateHeaderCapacity(frames)
-	requiredSize := len(secretData) + 8 // +8 bytes for length and filename info
+	requiredSize := len(secretData) + 8
 	fmt.Printf("Header capacity: %d bytes\n", capacity)
 	fmt.Printf("Required space: %d bytes\n", requiredSize)
 
@@ -130,13 +120,11 @@ func embedIntoHeaders(mp3Path, secretPath, outputPath string) error {
 			requiredSize, capacity)
 	}
 
-	// Embed secret data into headers
 	result, err := embedDataInHeaders(mp3Data, secretData, frames, offsets, filepath.Base(secretPath))
 	if err != nil {
 		return fmt.Errorf("failed to embed data: %v", err)
 	}
 
-	// Write output file
 	err = writeFile(outputPath, result)
 	if err != nil {
 		return fmt.Errorf("failed to write output file: %v", err)
@@ -145,9 +133,7 @@ func embedIntoHeaders(mp3Path, secretPath, outputPath string) error {
 	return nil
 }
 
-// extractFromHeaders extracts a secret file from MP3 frame headers
 func extractFromHeaders(mp3Path, outputPath string) error {
-	// Read MP3 file
 	mp3Data, err := readFile(mp3Path)
 	if err != nil {
 		return fmt.Errorf("failed to read MP3 file: %v", err)
@@ -155,13 +141,11 @@ func extractFromHeaders(mp3Path, outputPath string) error {
 
 	fmt.Printf("MP3 file: %s (%d bytes)\n", mp3Path, len(mp3Data))
 
-	// Skip ID3 tag if present
 	dataStart := skipID3Tag(mp3Data)
 	if dataStart > 0 {
 		fmt.Printf("Skipped ID3 tag: %d bytes\n", dataStart)
 	}
 
-	// Parse MP3 frames
 	frames, offsets, err := findMP3Frames(mp3Data[dataStart:])
 	if err != nil {
 		return fmt.Errorf("failed to parse MP3 frames: %v", err)
@@ -171,14 +155,12 @@ func extractFromHeaders(mp3Path, outputPath string) error {
 		return fmt.Errorf("no valid MP3 frames found")
 	}
 
-	// Adjust offsets for ID3 tag skip
 	for i := range offsets {
 		offsets[i] += dataStart
 	}
 
 	fmt.Printf("Found %d MP3 frames\n", len(frames))
 
-	// Extract secret data from headers
 	secretData, originalFilename, err := extractDataFromHeaders(mp3Data, frames, offsets)
 	if err != nil {
 		return fmt.Errorf("failed to extract data: %v", err)
@@ -189,7 +171,6 @@ func extractFromHeaders(mp3Path, outputPath string) error {
 		fmt.Printf("Original filename: %s\n", originalFilename)
 	}
 
-	// Write extracted data
 	err = writeFile(outputPath, secretData)
 	if err != nil {
 		return fmt.Errorf("failed to write extracted file: %v", err)
@@ -198,33 +179,25 @@ func extractFromHeaders(mp3Path, outputPath string) error {
 	return nil
 }
 
-// embedDataInHeaders embeds data into MP3 frame headers using safe bits
 func embedDataInHeaders(mp3Data []byte, secretData []byte, frames []*MP3FrameHeader, offsets []int, filename string) ([]byte, error) {
-	// Create copy of original data
 	result := make([]byte, len(mp3Data))
 	copy(result, mp3Data)
 
-	// Prepare payload: 4-byte length + 4-byte filename length + filename + data
 	filenameBytes := []byte(filename)
 	if len(filenameBytes) > 255 {
-		filenameBytes = filenameBytes[:255] // Limit filename length
+		filenameBytes = filenameBytes[:255]
 	}
 
 	payload := make([]byte, 0)
-	// Add data length (4 bytes)
 	dataLen := len(secretData)
 	payload = append(payload, byte(dataLen>>24), byte(dataLen>>16), byte(dataLen>>8), byte(dataLen))
-	// Add filename length (4 bytes)
 	filenameLen := len(filenameBytes)
 	payload = append(payload, byte(filenameLen>>24), byte(filenameLen>>16), byte(filenameLen>>8), byte(filenameLen))
-	// Add filename
 	payload = append(payload, filenameBytes...)
-	// Add actual data
 	payload = append(payload, secretData...)
 
 	fmt.Printf("Payload size: %d bytes (including metadata)\n", len(payload))
 
-	// Embed payload into frame headers
 	bitIndex := 0
 	payloadIndex := 0
 
@@ -235,20 +208,14 @@ func embedDataInHeaders(mp3Data []byte, secretData []byte, frames []*MP3FrameHea
 
 		frameOffset := offsets[frameIdx]
 
-		// Embed in the 4-byte header using safe bits:
-		// Byte 2, bit 0: Private bit
-		// Byte 3, bit 3: Copyright bit
-		// Byte 3, bit 2: Original bit
-		// Total: 3 bits per frame
-
 		safeBitPositions := []struct {
 			offset int
 			mask   byte
 			shift  int
 		}{
-			{2, 0x01, 0}, // Private bit (byte 2, bit 0)
-			{3, 0x08, 3}, // Copyright bit (byte 3, bit 3)
-			{3, 0x04, 2}, // Original bit (byte 3, bit 2)
+			{2, 0x01, 0},
+			{3, 0x08, 3},
+			{3, 0x04, 2},
 		}
 
 		for _, pos := range safeBitPositions {
@@ -256,11 +223,9 @@ func embedDataInHeaders(mp3Data []byte, secretData []byte, frames []*MP3FrameHea
 				break
 			}
 
-			// Get the bit to embed
 			payloadByte := payload[payloadIndex]
 			bitToEmbed := (payloadByte >> (7 - bitIndex)) & 1
 
-			// Clear the target bit and set our bit
 			byteOffset := frameOffset + pos.offset
 			result[byteOffset] = (result[byteOffset] & ^pos.mask) | (bitToEmbed << pos.shift)
 
@@ -281,13 +246,11 @@ func embedDataInHeaders(mp3Data []byte, secretData []byte, frames []*MP3FrameHea
 	return result, nil
 }
 
-// extractDataFromHeaders extracts data from MP3 frame headers
 func extractDataFromHeaders(mp3Data []byte, frames []*MP3FrameHeader, offsets []int) ([]byte, string, error) {
 	bitIndex := 0
 	currentByte := byte(0)
 
-	// State machine for extraction
-	state := "metadata" // metadata -> filename -> data
+	state := "metadata"
 	metadataBytes := 0
 	dataLength := 0
 	filenameLength := 0
@@ -300,16 +263,15 @@ func extractDataFromHeaders(mp3Data []byte, frames []*MP3FrameHeader, offsets []
 		mask   byte
 		shift  int
 	}{
-		{2, 0x01, 0}, // Private bit (byte 2, bit 0)
-		{3, 0x08, 3}, // Copyright bit (byte 3, bit 3)
-		{3, 0x04, 2}, // Original bit (byte 3, bit 2)
+		{2, 0x01, 0},
+		{3, 0x08, 3},
+		{3, 0x04, 2},
 	}
 
 	for frameIdx := range frames {
 		frameOffset := offsets[frameIdx]
 
 		for _, pos := range safeBitPositions {
-			// Extract the bit
 			byteOffset := frameOffset + pos.offset
 			extractedBit := (mp3Data[byteOffset] & pos.mask) >> pos.shift
 
@@ -317,20 +279,16 @@ func extractDataFromHeaders(mp3Data []byte, frames []*MP3FrameHeader, offsets []
 			bitIndex++
 
 			if bitIndex == 8 {
-				// We have a complete byte
 				switch state {
 				case "metadata":
 					if metadataBytes < 4 {
-						// Reading data length
 						dataLength = (dataLength << 8) | int(currentByte)
 					} else if metadataBytes < 8 {
-						// Reading filename length
 						filenameLength = (filenameLength << 8) | int(currentByte)
 					}
 					metadataBytes++
 
 					if metadataBytes == 8 {
-						// Finished reading metadata
 						if dataLength <= 0 || dataLength > 10*1024*1024 || filenameLength < 0 || filenameLength > 255 {
 							return nil, "", fmt.Errorf("invalid metadata: dataLen=%d, filenameLen=%d", dataLength, filenameLength)
 						}
@@ -368,13 +326,10 @@ func extractDataFromHeaders(mp3Data []byte, frames []*MP3FrameHeader, offsets []
 		state, len(dataBytes), dataLength)
 }
 
-// calculateHeaderCapacity calculates embedding capacity in frame headers
 func calculateHeaderCapacity(frames []*MP3FrameHeader) int {
-	// 3 safe bits per frame header (Private, Copyright, Original)
-	return (len(frames) * 3) / 8 // Convert bits to bytes
+	return (len(frames) * 3) / 8
 }
 
-// readFile reads a file and returns its contents
 func readFile(path string) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -385,7 +340,6 @@ func readFile(path string) ([]byte, error) {
 	return io.ReadAll(file)
 }
 
-// writeFile writes data to a file
 func writeFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, 0755)
@@ -396,7 +350,6 @@ func writeFile(path string, data []byte) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-// skipID3Tag skips ID3v2 tag if present
 func skipID3Tag(data []byte) int {
 	if len(data) < 10 {
 		return 0
@@ -410,7 +363,6 @@ func skipID3Tag(data []byte) int {
 	return 0
 }
 
-// parseMP3Frame parses an MP3 frame header
 func parseMP3Frame(data []byte, offset int) (*MP3FrameHeader, error) {
 	if len(data) < offset+4 {
 		return nil, fmt.Errorf("not enough data for frame header")
@@ -453,7 +405,6 @@ func parseMP3Frame(data []byte, offset int) (*MP3FrameHeader, error) {
 	return header, nil
 }
 
-// findMP3Frames finds all MP3 frames in the data
 func findMP3Frames(data []byte) ([]*MP3FrameHeader, []int, error) {
 	var frames []*MP3FrameHeader
 	var offsets []int

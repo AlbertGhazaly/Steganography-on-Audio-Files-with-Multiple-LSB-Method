@@ -30,7 +30,6 @@ func (req *HeaderRequest) Validate() error {
 	return nil
 }
 
-// Legacy LSB request for backward compatibility
 type LSBRequest struct {
 	MessageFile []byte `json:"message_file"`
 	Mp3File     []byte `json:"mp3_file"`
