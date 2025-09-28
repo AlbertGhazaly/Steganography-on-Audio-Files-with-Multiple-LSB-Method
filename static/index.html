@@ -67,6 +67,9 @@
             <div class="flex-1 p-4 border-2 border-gray-300 bg-white text-gray-700 rounded-lg cursor-pointer text-center transition-all duration-300 hover:border-blue-500 hover:bg-gray-50" onclick="switchTab('extract')">
                 Extract
             </div>
+            <div class="flex-1 p-4 border-2 border-gray-300 bg-white text-gray-700 rounded-lg cursor-pointer text-center transition-all duration-300 hover:border-purple-500 hover:bg-gray-50" onclick="switchTab('psnr')">
+                PSNR
+            </div>
         </div>
 
         <!-- Embed Section -->
@@ -193,6 +196,37 @@
                 </div>
             </form>
         </div>
+        
+        <!-- PSNR Section -->
+        <div id="psnr-section" class="bg-gray-50 p-6 rounded-lg mb-8 hidden">
+            <h2 class="text-2xl font-semibold text-center text-purple-700 mb-6">Peak Signal-to-Noise Ratio (PSNR) Analysis</h2>
+            
+            <div class="mb-4 text-gray-700">
+                <p>PSNR measures the quality of the stego audio file compared to the original one. Higher PSNR values indicate better quality and less noticeable modifications.</p>
+            </div>
+            
+            <form id="psnrForm" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label for="psnr-original-file" class="block mb-2 font-bold text-gray-600">Original MP3 File</label>
+                    <input type="file" id="psnr-original-file" name="original_file" accept=".mp3" required 
+                           class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                    <div id="psnr-original-info" class="hidden bg-gray-200 p-3 rounded-md mt-2 text-sm text-gray-600"></div>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="psnr-modified-file" class="block mb-2 font-bold text-gray-600">Modified MP3 File (with embedded data)</label>
+                    <input type="file" id="psnr-modified-file" name="modified_file" accept=".mp3" required 
+                           class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                    <div id="psnr-modified-info" class="hidden bg-gray-200 p-3 rounded-md mt-2 text-sm text-gray-600"></div>
+                </div>
+                
+                <div class="flex justify-center">
+                    <button type="submit" class="bg-purple-500 text-white px-6 py-3 items-center rounded-lg font-semibold text-base transition-colors duration-300 hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">
+                        Calculate PSNR
+                    </button>
+                </div>
+            </form>
+        </div>
 
         <div id="result-section" class="bg-gray-50 p-6 rounded-lg mb-8 hidden">
             <h2 class="text-2xl font-semibold text-gray-700 mb-4">Operation Result</h2>
@@ -222,6 +256,54 @@
                         Save Extracted File
                     </button>
                     <p class="text-sm text-gray-600 mt-2 text-center">Click to choose save location and filename</p>
+                </div>
+            </div>
+            
+            <div id="psnr-result" class="hidden mt-4">
+                <h3 class="text-lg font-semibold text-purple-700 mb-4">PSNR Analysis Results</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-white p-4 border-2 border-purple-200 rounded-lg">
+                        <div class="text-xl font-bold text-purple-700 mb-1">PSNR Value</div>
+                        <div id="psnr-value" class="text-4xl font-bold text-purple-900">0.00 dB</div>
+                        <div class="text-sm text-gray-600 mt-1">Higher is better (>30 dB is good)</div>
+                    </div>
+                    <div class="bg-white p-4 border-2 border-purple-200 rounded-lg">
+                        <div class="text-xl font-bold text-purple-700 mb-1">Mean Squared Error</div>
+                        <div id="mse-value" class="text-4xl font-bold text-purple-900">0.00</div>
+                        <div class="text-sm text-gray-600 mt-1">Lower is better</div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 border-2 border-purple-200 rounded-lg mb-4">
+                    <h4 class="text-lg font-semibold text-purple-700 mb-2">Detailed Analysis</h4>
+                    <table class="w-full">
+                        <tbody>
+                            <tr class="border-b border-gray-200">
+                                <td class="py-2 font-semibold text-gray-700">Maximum Signal Value:</td>
+                                <td id="max-signal-value" class="py-2 text-right">0</td>
+                            </tr>
+                            <tr class="border-b border-gray-200">
+                                <td class="py-2 font-semibold text-gray-700">Original File Size:</td>
+                                <td id="original-size" class="py-2 text-right">0 bytes</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 font-semibold text-gray-700">Modified File Size:</td>
+                                <td id="modified-size" class="py-2 text-right">0 bytes</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="bg-white p-4 border-2 border-purple-200 rounded-lg">
+                    <h4 class="text-lg font-semibold text-purple-700 mb-2">PSNR Quality Scale</h4>
+                    <div class="flex items-center mb-2">
+                        <div class="w-full bg-gray-200 rounded-full">
+                            <div id="psnr-quality-bar" class="bg-purple-500 text-xs font-medium text-white text-center p-0.5 leading-none rounded-full" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 text-xs text-center mt-1">
+                        <div class="text-red-600">Poor (&lt;20 dB)</div>
+                        <div class="text-yellow-600">Average (20-40 dB)</div>
+                        <div class="text-green-600">Excellent (&gt;40 dB)</div>
+                    </div>
                 </div>
             </div>
         </div>

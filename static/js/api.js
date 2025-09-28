@@ -53,4 +53,22 @@ export class ApiService {
             throw new Error(`Extract operation failed: ${error.message}`);
         }
     }
+    
+    async calculatePSNR(formData) {
+        try {
+            const response = await fetch(`${this.BASE_URL}/psnr`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'PSNR calculation failed');
+            }
+
+            return await response.json();
+        } catch (error) {
+            throw new Error(`PSNR calculation failed: ${error.message}`);
+        }
+    }
 }

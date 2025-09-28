@@ -51,6 +51,12 @@ class SteganographyApp {
         document.getElementById('extract-mp3-file').addEventListener('change', function() {
             app.ui.showFileInfo(this, 'extract-mp3-info', 'extract-mp3-player', 'extract-mp3-source');
         });
+        document.getElementById('psnr-original-file').addEventListener('change', function() {
+            app.ui.showFileInfo(this, 'psnr-original-info');
+        });
+        document.getElementById('psnr-modified-file').addEventListener('change', function() {
+            app.ui.showFileInfo(this, 'psnr-modified-info');
+        });
 
         window.downloadStegoFile = () => {
             this.fileHandler.downloadStegoFile();
@@ -67,6 +73,10 @@ class SteganographyApp {
 
         document.getElementById('extractForm').addEventListener('submit', (event) => {
             this.handleExtract(event);
+        });
+        
+        document.getElementById('psnrForm').addEventListener('submit', (event) => {
+            this.handlePSNR(event);
         });
     }
 
@@ -159,6 +169,43 @@ class SteganographyApp {
             );
         } catch (error) {
             console.error('Error extracting file:', error);
+            this.ui.showResult('Error: ' + error.message, true);
+        }
+    }
+    
+    async handlePSNR(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        
+        // Validate original file
+        const originalFileValidation = ValidationService.validateFile(
+            document.getElementById('psnr-original-file'), 'mp3'
+        );
+        if (!originalFileValidation.isValid) {
+            this.ui.showResult('Error: ' + originalFileValidation.error, true);
+            return;
+        }
+        
+        // Validate modified file
+        const modifiedFileValidation = ValidationService.validateFile(
+            document.getElementById('psnr-modified-file'), 'mp3'
+        );
+        if (!modifiedFileValidation.isValid) {
+            this.ui.showResult('Error: ' + modifiedFileValidation.error, true);
+            return;
+        }
+        
+        const formData = new FormData(form);
+        
+        try {
+            this.ui.showResult('Calculating PSNR... Please wait', false);
+            
+            const result = await this.api.calculatePSNR(formData);
+            
+            this.ui.showPSNRResult(result);
+        } catch (error) {
+            console.error('Error calculating PSNR:', error);
             this.ui.showResult('Error: ' + error.message, true);
         }
     }
