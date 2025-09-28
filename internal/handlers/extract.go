@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/crypto"
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/stego"
 	"github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method/internal/utils"
 )
@@ -27,7 +28,7 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 	key := r.FormValue("key")
 	useEncryption := r.FormValue("use_encryption") == "true"
 	useKeyForPosition := r.FormValue("use_key_for_position") == "true"
-	mode := r.FormValue("mode") // "paper" (default) or "legacy"
+	mode := r.FormValue("mode")
 	if mode == "" {
 		mode = "paper"
 	}
@@ -46,11 +47,9 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer mp3File.Close()
 
-	// Create a temporary directory to save the MP3 file
 	tempDir := "./temp"
 	os.MkdirAll(tempDir, 0755)
 
-	// Save the MP3 file temporarily
 	mp3Path := filepath.Join(tempDir, mp3Header.Filename)
 	mp3Dst, err := os.Create(mp3Path)
 	if err != nil {
@@ -67,7 +66,6 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	mp3Dst.Close()
 
-	// Read the MP3 file
 	mp3Data, err := os.ReadFile(mp3Path)
 	if err != nil {
 		utils.SendError(w, "Failed to read MP3 file", http.StatusInternalServerError)
@@ -87,7 +85,10 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set content type based on the first few bytes of the extracted data
+	if useEncryption && key != "" {
+		extractedData = crypto.VigenereDecrypt(extractedData, key)
+	}
+
 	contentType := http.DetectContentType(extractedData)
 
 	w.Header().Set("Content-Type", contentType)
