@@ -27,7 +27,7 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 
 	key := r.FormValue("key")
 	useEncryption := r.FormValue("use_encryption") == "true"
-	_ = r.FormValue("use_key_for_position")
+	useKeyForPosition := r.FormValue("use_key_for_position") == "true"
 	method := r.FormValue("method")
 	if method == "" {
 		method = "header"
@@ -86,7 +86,7 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 		extractedData, err = headerStego.ExtractMessage(mp3Data)
 	} else {
 		lsbStego := stego.NewLSBSteganography()
-		extractedData, err = lsbStego.ExtractMessage(mp3Data, lsbBits)
+		extractedData, err = lsbStego.ExtractMessageWithKey(mp3Data, lsbBits, key, useKeyForPosition)
 	}
 	if err != nil {
 		utils.SendError(w, "Failed to extract secret data: "+err.Error(), http.StatusInternalServerError)

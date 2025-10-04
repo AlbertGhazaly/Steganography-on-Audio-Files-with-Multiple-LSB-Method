@@ -28,7 +28,7 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 
 	key := r.FormValue("key")
 	useEncryption := r.FormValue("use_encryption") == "true"
-	_ = r.FormValue("use_key_for_position")
+	useKeyForPosition := r.FormValue("use_key_for_position") == "true"
 	method := r.FormValue("method")
 	if method == "" {
 		method = "header"
@@ -124,7 +124,7 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		lsbStego := stego.NewLSBSteganography()
-		embeddedData, err = lsbStego.EmbedMessage(mp3Data, secretData, lsbBits)
+		embeddedData, err = lsbStego.EmbedMessageWithKey(mp3Data, secretData, lsbBits, key, useKeyForPosition)
 	}
 	if err != nil {
 		utils.SendError(w, "Failed to embed secret data: "+err.Error(), http.StatusInternalServerError)
