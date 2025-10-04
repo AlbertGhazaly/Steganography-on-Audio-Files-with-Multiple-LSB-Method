@@ -106,8 +106,8 @@ Header hasil ekstraksi (bila tersedia metadata):
 
 | NIM        | Nama                 |
 |------------|----------------------|
-| 13522150   | Nama Anggota 1       |
-| 13522158   | Nama Anggota 2       |
+| 13522150   | Albert Ghazaly       |
+| 13522158   | Muhammad Rasheed Qais Tandjung       |
 
 
 
