@@ -109,7 +109,9 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 		utils.SendError(w, "Failed to read secret file", http.StatusInternalServerError)
 		return
 	}
+
 	if useEncryption && key != "" {
+		println("DEBUG: Use Encryption is enabled")
 		secretData = crypto.VigenereEncrypt(secretData, key)
 	}
 

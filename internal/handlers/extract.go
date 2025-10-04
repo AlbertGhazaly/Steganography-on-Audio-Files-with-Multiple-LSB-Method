@@ -94,6 +94,7 @@ func ExtractHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if useEncryption && key != "" {
+		println("[DEBUG] Use-Decryption is enabled")
 		extractedData = crypto.VigenereDecrypt(extractedData, key)
 	}
 
