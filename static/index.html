@@ -131,8 +131,8 @@
                     <label for="embed-method" class="block mb-2 font-bold text-gray-600">Steganography Method</label>
                     <select id="embed-method" name="method" required 
                             class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 bg-white">
+                        <option value="lsb" selected>LSB Steganography</option>
                         <option value="header">Header Steganography</option>
-                        <option value="lsb">LSB Steganography</option>
                     </select>
                 </div>
                 
@@ -199,45 +199,18 @@
                     <label for="extract-method" class="block mb-2 font-bold text-gray-600">Steganography Method</label>
                     <select id="extract-method" name="method" required 
                             class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 bg-white">
+                        <option value="lsb" selected>LSB Steganography</option>
                         <option value="header">Header Steganography</option>
-                        <option value="lsb">LSB Steganography</option>
                     </select>
                 </div>
                 
                 <div class="mb-4" id="extract-key-section">
-                    <label for="extract-key" class="block mb-2 font-bold text-gray-600">Steganography Key <span id="extract-key-required-indicator">(Required for LSB)</span></label>
-                    <input type="text" id="extract-key" name="key" placeholder="Enter the secret key (ASCII characters 0-255)..." 
+                    <label for="extract-key" class="block mb-2 font-bold text-gray-600">Steganography Key <span id="extract-key-required-indicator">(Optional - only if encryption was used)</span></label>
+                    <input type="text" id="extract-key" name="key" placeholder="Enter the secret key if encryption was used during embedding..." 
                            class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500">
                 </div>
 
-                <div class="mb-4 hidden" id="extract-lsb-section">
-                    <label for="extract-lsb" class="block mb-2 font-bold text-gray-600">LSB Bits</label>
-                    <select id="extract-lsb" name="lsb_bits" 
-                            class="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors duration-300 focus:outline-none focus:border-blue-500 bg-white">
-                        <option value="1">1 bit</option>
-                        <option value="2">2 bits</option>
-                        <option value="3">3 bits</option>
-                        <option value="4">4 bits</option>
-                    </select>
-                </div>
-
-                <div class="mb-6 flex flex-row justify-center gap-10 hidden" id="extract-lsb-options">
-                    <div class="flex items-center gap-3 mb-4">
-                        <label class="toggle">
-                            <input type="checkbox" id="extract-encryption" name="use_encryption">
-                            <span class="slider"></span>
-                        </label>
-                        <label for="extract-encryption" class="font-semibold text-gray-700">Encrypt</label>
-                    </div>
-
-                    <div class="flex items-center gap-3 mb-4">
-                        <label class="toggle">
-                            <input type="checkbox" id="extract-position" name="use_key_for_position">
-                            <span class="slider"></span>
-                        </label>
-                        <label for="extract-position" class="font-semibold text-gray-700">Use Key for Position Seed</label>
-                    </div>
-                </div>
+                <!-- LSB parameters are now auto-detected from metadata, so we don't need manual input -->
                 
                 <div class="flex justify-center">
                     <button type="submit" class="bg-green-500 text-white px-6 py-3 items-center rounded-lg font-semibold text-base transition-colors duration-300 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">

@@ -31,6 +31,23 @@ export class ValidationService {
     }
 
     static validateKeyForSubmission(keyValue) {
+        if (keyValue.length === 0) {
+            return { isValid: true };
+        }
+        
+        for (let i = 0; i < keyValue.length; i++) {
+            if (keyValue.charCodeAt(i) > 255) {
+                return {
+                    isValid: false,
+                    error: 'Key can only contain ASCII characters (0-255)'
+                };
+            }
+        }
+        
+        return { isValid: true };
+    }
+
+    static validateKeyForSubmissionRequired(keyValue) {
         for (let i = 0; i < keyValue.length; i++) {
             if (keyValue.charCodeAt(i) > 255) {
                 return {

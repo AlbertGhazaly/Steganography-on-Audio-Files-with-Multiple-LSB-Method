@@ -129,7 +129,7 @@ export class UIManager {
         resultSection.classList.remove('hidden');
     }
 
-    showExtractResult(message, extractBlob, contentType) {
+    showExtractResult(message, extractBlob, contentType, metadata = null) {
         const resultSection = document.getElementById('result-section');
         const resultMessage = document.getElementById('result-message');
         const resultPlayer = document.getElementById('result-player');
@@ -146,10 +146,28 @@ export class UIManager {
         }
         this.currentExtractUrl = URL.createObjectURL(extractBlob);
         
+        let metadataHtml = '';
+        if (metadata && metadata.originalFilename) {
+            metadataHtml = `
+                <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="font-semibold text-blue-800 mb-2">Embedded Metadata:</h4>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div><span class="font-medium">Original Filename:</span> ${metadata.originalFilename}</div>
+                        <div><span class="font-medium">File Type:</span> ${metadata.fileType || 'Auto-detected'}</div>
+                        <div><span class="font-medium">Secret Size:</span> ${metadata.secretSize ? (metadata.secretSize / 1024).toFixed(2) + ' KB' : 'Unknown'}</div>
+                        <div><span class="font-medium">LSB Bits Used:</span> ${metadata.lsbBits || 'N/A'}</div>
+                        <div><span class="font-medium">Used Encryption:</span> ${metadata.usedEncryption ? 'Yes' : 'No'}</div>
+                        <div><span class="font-medium">Used Key Positioning:</span> ${metadata.usedKeyPosition ? 'Yes' : 'No'}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
         resultMessage.innerHTML = `
             <div class="p-4 rounded-lg font-bold border-2 border-green-200 bg-green-50 text-green-800">
                 ${message}
             </div>
+            ${metadataHtml}
         `;
         
         if (contentType && contentType.startsWith('text/')) {

@@ -36,7 +36,7 @@ func CapacityHandler(w http.ResponseWriter, r *http.Request) {
 
 	method := r.FormValue("method")
 	if method == "" {
-		method = "header"
+		method = "lsb"
 	}
 
 	var lsbBits int

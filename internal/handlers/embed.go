@@ -31,7 +31,7 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 	useKeyForPosition := r.FormValue("use_key_for_position") == "true"
 	method := r.FormValue("method")
 	if method == "" {
-		method = "header"
+		method = "lsb"
 	}
 
 	var lsbBits int
@@ -39,8 +39,7 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 		lsbBitsStr := r.FormValue("lsb_bits")
 		lsbBits, err = strconv.Atoi(lsbBitsStr)
 		if err != nil || lsbBits < 1 || lsbBits > 4 {
-			utils.SendError(w, "LSB bits must be between 1 and 4", http.StatusBadRequest)
-			return
+			lsbBits = 1
 		}
 
 		if key == "" {
@@ -111,7 +110,7 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if useEncryption && key != "" {
-		println("DEBUG: Use Encryption is enabled")
+		log.Printf("Applying encryption to secret data")
 		secretData = crypto.VigenereEncrypt(secretData, key)
 	}
 
@@ -120,13 +119,19 @@ func EmbedHandler(w http.ResponseWriter, r *http.Request) {
 		headerStego := stego.NewHeaderSteganography()
 		embeddedData, err = headerStego.EmbedMessage(mp3Data, secretData, secretHeader.Filename)
 	} else {
-		capacity := stego.CalculateCapacity(len(mp3Data), lsbBits)
-		if len(secretData)+4 > capacity {
-			utils.SendError(w, fmt.Sprintf("Secret file too large to embed with %d LSB bits", lsbBits), http.StatusBadRequest)
-			return
-		}
+		fileType := stego.DetectFileType(secretData, secretHeader.Filename)
+
 		lsbStego := stego.NewLSBSteganography()
-		embeddedData, err = lsbStego.EmbedMessageWithKey(mp3Data, secretData, lsbBits, key, useKeyForPosition)
+		embeddedData, err = lsbStego.EmbedMessageWithMetadata(
+			mp3Data,
+			secretData,
+			lsbBits,
+			key,
+			useKeyForPosition,
+			useEncryption,
+			secretHeader.Filename,
+			fileType,
+		)
 	}
 	if err != nil {
 		utils.SendError(w, "Failed to embed secret data: "+err.Error(), http.StatusInternalServerError)

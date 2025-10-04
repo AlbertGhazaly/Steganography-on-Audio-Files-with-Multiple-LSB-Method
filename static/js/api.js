@@ -45,9 +45,19 @@ export class ApiService {
                 throw new Error(errorData.message || 'Extraction failed');
             }
 
+            const metadata = {
+                originalFilename: response.headers.get('X-Original-Filename'),
+                fileType: response.headers.get('X-File-Type'),
+                secretSize: response.headers.get('X-Secret-Size'),
+                usedEncryption: response.headers.get('X-Used-Encryption') === 'true',
+                usedKeyPosition: response.headers.get('X-Used-Key-Position') === 'true',
+                lsbBits: response.headers.get('X-LSB-Bits')
+            };
+
             return {
                 blob: await response.blob(),
-                contentType: response.headers.get('content-type')
+                contentType: response.headers.get('content-type'),
+                metadata: metadata
             };
         } catch (error) {
             throw new Error(`Extract operation failed: ${error.message}`);

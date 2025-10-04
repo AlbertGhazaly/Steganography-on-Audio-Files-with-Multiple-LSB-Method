@@ -10,6 +10,9 @@ var (
 	ErrInvalidMP3Format     = errors.New("invalid MP3 file format")
 	ErrNoValidFrames        = errors.New("no valid MP3 frames found")
 	ErrEmbedDataTooLarge    = errors.New("secret data too large for MP3 header capacity")
+	ErrInvalidMetadata      = errors.New("invalid metadata format")
+	ErrWrongKey             = errors.New("incorrect key provided - unable to decrypt encrypted metadata")
+	ErrNoSteganographicData = errors.New("no steganographic data found in this MP3 file")
 )
 
 type HeaderRequest struct {

@@ -19,8 +19,8 @@ class SteganographyApp {
 
         this.setupFormHandlers();
 
-        this.handleMethodChange('embed', 'header');
-        this.handleMethodChange('extract', 'header');
+        this.handleMethodChange('embed', 'lsb');
+        this.handleMethodChange('extract', 'lsb');
     }
 
     async checkConnection() {
@@ -115,7 +115,7 @@ class SteganographyApp {
         const form = event.target;
         const keyInput = document.getElementById('embed-key');
         
-        const keyValidation = ValidationService.validateKeyForSubmission(keyInput.value);
+        const keyValidation = ValidationService.validateKeyForSubmissionRequired(keyInput.value);
         if (!keyValidation.isValid) {
             this.ui.showResult('Error: ' + keyValidation.error, true);
             return;
@@ -161,39 +161,58 @@ class SteganographyApp {
 
     async handleExtract(event) {
         event.preventDefault();
+        console.log('Extract form submitted');
         
         const form = event.target;
         const keyInput = document.getElementById('extract-key');
+        const method = document.getElementById('extract-method').value;
         
-        const keyValidation = ValidationService.validateKeyForSubmission(keyInput.value);
-        if (!keyValidation.isValid) {
-            this.ui.showResult('Error: ' + keyValidation.error, true);
-            return;
+        console.log('Method:', method);
+        console.log('Key value:', keyInput.value);
+        
+        if (keyInput.value.trim() !== '') {
+            console.log('Validating key...');
+            const keyValidation = ValidationService.validateKeyForSubmission(keyInput.value);
+            if (!keyValidation.isValid) {
+                console.error('Key validation failed:', keyValidation.error);
+                this.ui.showResult('Error: ' + keyValidation.error, true);
+                return;
+            }
+            console.log('Key validation passed');
+        } else {
+            console.log('No key provided, skipping validation');
         }
 
+        console.log('Validating MP3 file...');
         const mp3Validation = ValidationService.validateFile(
             document.getElementById('extract-mp3-file'), 'mp3'
         );
         if (!mp3Validation.isValid) {
+            console.error('MP3 validation failed:', mp3Validation.error);
             this.ui.showResult('Error: ' + mp3Validation.error, true);
             return;
         }
+        console.log('MP3 validation passed');
 
         const formData = new FormData(form);
-        formData.set('use_encryption', document.getElementById('extract-encryption').checked);
-        formData.set('use_key_for_position', document.getElementById('extract-position').checked);
-        formData.set('lsb_bits', document.getElementById('extract-lsb').value);
-    formData.set('mode', 'paper');
-
-        try {
+        
+        if (method === 'lsb') {
+            formData.delete('use_encryption');
+            formData.delete('use_key_for_position');
+            formData.delete('lsb_bits');
+        }        try {
+            console.log('Starting extraction...');
             this.ui.showResult('Extracting... Please wait', false);
             
+            console.log('Calling API...');
             const result = await this.api.extractFile(formData);
+            console.log('API call successful, result:', result);
             
             this.ui.showExtractResult(
                 'Secret file extracted successfully! Preview the result below:', 
                 result.blob, 
-                result.contentType
+                result.contentType,
+                result.metadata
             );
         } catch (error) {
             console.error('Error extracting file:', error);
@@ -273,19 +292,25 @@ class SteganographyApp {
         const keyRequiredIndicator = document.getElementById(`${section}-key-required-indicator`);
         
         if (method === 'lsb') {
-            lsbSection?.classList.remove('hidden');
-            lsbOptions?.classList.remove('hidden');
-            
-            keyInput.required = true;
-            if (keyRequiredIndicator) {
-                keyRequiredIndicator.textContent = '(Required for LSB)';
-                keyRequiredIndicator.style.color = '#dc2626';
-            }
-            
             if (section === 'embed') {
+                lsbSection?.classList.remove('hidden');
+                lsbOptions?.classList.remove('hidden');
+                
+                keyInput.required = true;
+                if (keyRequiredIndicator) {
+                    keyRequiredIndicator.textContent = '(Required for LSB)';
+                    keyRequiredIndicator.style.color = '#dc2626';
+                }
+                
                 const description = document.getElementById('method-description');
                 if (description) {
                     description.textContent = 'LSB method embeds data by modifying the least significant bits of audio samples - offers more capacity but less stealth.';
+                }
+            } else {
+                keyInput.required = false;
+                if (keyRequiredIndicator) {
+                    keyRequiredIndicator.textContent = '(Optional - only if encryption was used)';
+                    keyRequiredIndicator.style.color = '#6b7280';
                 }
             }
         } else {
