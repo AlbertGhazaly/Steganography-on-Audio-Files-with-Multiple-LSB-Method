@@ -1,116 +1,175 @@
 # Steganography on Audio Files with Multiple LSB Method
 
-Aplikasi steganografi untuk menyisipkan dan mengekstrak berkas rahasia ke/dari file MP3 menggunakan metode Multiple-LSB, dilengkapi opsi enkripsi Vigenere, pemakaian key untuk penentuan posisi bit, perhitungan kapasitas, dan evaluasi kualitas dengan PSNR. Proyek ini dibuat sebagai Minor Assignment II (Tucil II) IF4020 Kriptografi Semester I 2025/2026.
+> Hide any file (PDF, TXT, images, documents, …) inside an MP3 and get it back out, using Multiple-LSB steganography with optional Vigenère encryption, through a Go web app.
 
-Frontend statis tersedia pada root server dan berinteraksi dengan backend REST sederhana berbasis Go.
+[Bahasa Indonesia](README.id.md) · ![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go) ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-## Daftar Isi
+Built for Minor Assignment II (Tucil II) of **IF4020 Kriptografi** (Cryptography), Semester I 2025/2026, Institut Teknologi Bandung (ITB).
 
-- [Nama & Deskripsi Program](#nama--deskripsi-program)
+## Table of Contents
+
+- [Why this project?](#why-this-project)
+- [Features](#features)
+- [Quickstart](#quickstart)
+- [Usage](#usage)
+  - [Web interface](#web-interface)
+  - [REST API](#rest-api)
+- [Installation](#installation)
 - [Tech Stack](#tech-stack)
-- [Dependensi](#dependensi)
-- [Cara Menjalankan](#cara-menjalankan)
-- [Fitur Utama](#fitur-utama)
-- [API Endpoints](#api-endpoints)
-- [Struktur Proyek](#struktur-proyek)
-- [Contoh Pemakaian Singkat](#contoh-pemakaian-singkat)
-- [Daftar Anggota](#daftar-anggota)
-- [Lisensi](#lisensi)
+- [Project Structure](#project-structure)
+- [Test Samples](#test-samples)
+- [Team](#team)
+- [License](#license)
 
-## Nama & Deskripsi Program
+## Why this project?
 
-Steganography on Audio Files with Multiple LSB Method — alat untuk menyembunyikan berkas (PDF, TXT, gambar, dsb.) ke dalam MP3 melalui teknik manipulasi bit paling rendah (LSB) dan membaca kembali pesan tersembunyi tersebut. Opsi tambahan meliputi:
+- **Hide files in MP3 audio.** The secret file is written into the least significant bits (1–4 bits) of the MP3 data.
+- **Get the original file back.** Metadata (original filename, file type, size, LSB configuration) is embedded with the payload, so extraction returns the file with its original name and type.
+- **More than plain LSB.** You can encrypt the payload with Vigenère, use the key to decide where bits go, check how much fits before embedding, and measure the quality change with PSNR.
 
-- Penyisipan metadata (nama asli file, tipe, ukuran, konfigurasi LSB, dll.)
-- Enkripsi Vigenere atas payload sebelum disisipkan
-- Pemakaian kunci untuk menentukan posisi bit agar lebih teracak
-- Perhitungan kapasitas maksimum yang tersedia
-- Perhitungan PSNR untuk menilai kualitas hasil penyisipan
+## Features
 
-## Tech Stack
+- **Embed** a secret file into an MP3 using LSB with 1–4 bits per byte
+- **Extract** the hidden file along with its metadata
+- **Vigenère encryption** of the payload before it is embedded
+- **Key-based bit positioning** so the embedding is less predictable
+- **Capacity calculation**, in bytes and in human-readable form
+- **PSNR calculation** comparing the original MP3 with the stego MP3
+- **Static web frontend** for uploading files and testing quickly
+- **No third-party dependencies.** Only the Go standard library is used.
 
-- Backend: Go 1.21 (net/http, encoding/json, dll. — standar library)
-- Frontend: HTML, CSS, JavaScript (vanilla) yang disajikan statis dari folder `static/`
+## Quickstart
 
-## Dependensi
-
-- Go 1.21 atau lebih baru
-- Tidak ada dependensi pihak ketiga (hanya Go standard library)
-
-## Cara Menjalankan
-
-1) Pastikan Go sudah terpasang (>= 1.21).
-2) Jalankan perintah build dan eksekusi berikut dari root proyek:
+Requires Go 1.21 or newer.
 
 ```bash
+git clone https://github.com/AlbertGhazaly/Steganography-on-Audio-Files-with-Multiple-LSB-Method.git
+cd Steganography-on-Audio-Files-with-Multiple-LSB-Method
 go build main.go
 ./main
 ```
 
-3) Akses antarmuka web pada:
+The server starts on port 8080 and prints its endpoints:
+
+```
+Steganography Server starting on :8080
+API endpoints:
+  GET    /api/health
+  POST   /api/embed    - Embed secret file into MP3
+  POST   /api/extract  - Extract secret file from MP3
+  POST   /api/capacity - Calculate MP3 embedding capacity
+  POST   /api/psnr     - Calculate PSNR between original and modified MP3
+Frontend available at: http://localhost:8080
+```
+
+Then open:
 
 - Frontend: http://localhost:8080
-- API Health: http://localhost:8080/api/health
+- API health check: http://localhost:8080/api/health
 
-Server secara default berjalan di port 8080 dan akan membuat folder sementara `./temp` untuk pemrosesan file.
+The server creates a temporary `./temp` folder to process uploaded files.
 
-## Fitur Utama
+## Usage
 
-- Penyisipan (embed) berkas rahasia ke MP3 via LSB (1–4 bit)
-- Ekstraksi (extract) berkas rahasia beserta metadata
-- Opsi enkripsi Vigenere dan pemakaian key untuk penentuan posisi bit
-- Perhitungan kapasitas penyisipan (byte dan format human-readable)
-- Perhitungan PSNR untuk membandingkan file MP3 asli vs hasil embed
-- Frontend sederhana untuk unggah file dan uji cepat
+### Web interface
 
-## API Endpoints
+Open `http://localhost:8080`, upload an MP3 and a secret file, set the LSB bits, the key and the encryption options, then click **Embed** or **Extract**.
 
-Base URL: `http://localhost:8080`
+### REST API
 
-- GET `/api/health` — Cek status server
-- POST `/api/embed` — Sisipkan berkas ke MP3
-	- Form fields: `mp3_file` (file), `secret_file` (file), `key` (string), `use_encryption` ("true"/"false"), `use_key_for_position` ("true"/"false"), `method` ("lsb"/"header", default `lsb`), `lsb_bits` (1–4, default 1)
-- POST `/api/extract` — Ekstrak berkas dari MP3
-	- Form fields: `mp3_file` (file), `key` (string, opsional — wajib bila saat embed memakai enkripsi)
-- POST `/api/capacity` — Hitung kapasitas embed
-	- Form fields: `mp3_file` (file), `method` ("lsb"/"header"), `lsb_bits` (1–4 untuk `lsb`)
-- POST `/api/psnr` — Hitung PSNR antara MP3 asli dan hasil
-	- Form fields: `original_file` (file), `modified_file` (file)
+Base URL: `http://localhost:8080`. All `POST` endpoints take `multipart/form-data`.
 
-Header hasil ekstraksi (bila tersedia metadata):
+| Method | Endpoint        | Description                              |
+|--------|-----------------|------------------------------------------|
+| GET    | `/api/health`   | Check server status                      |
+| POST   | `/api/embed`    | Embed a file into an MP3                 |
+| POST   | `/api/extract`  | Extract a file from an MP3               |
+| POST   | `/api/capacity` | Calculate embedding capacity             |
+| POST   | `/api/psnr`     | Calculate PSNR between original and stego MP3 |
 
-- `X-Original-Filename`, `X-File-Type`, `X-Secret-Size`, `X-Used-Encryption`, `X-Used-Key-Position`, `X-LSB-Bits`
+**`POST /api/embed`**
 
-## Struktur Proyek
+| Field                  | Type                 | Notes                                    |
+|------------------------|----------------------|------------------------------------------|
+| `mp3_file`             | file                 | Cover MP3                                |
+| `secret_file`          | file                 | File to hide                             |
+| `key`                  | string               | Required for the `lsb` method            |
+| `use_encryption`       | `"true"` / `"false"` | Encrypt the payload with Vigenère        |
+| `use_key_for_position` | `"true"` / `"false"` | Use the key to decide bit positions      |
+| `method`               | `"lsb"` / `"header"` | Default `lsb`                            |
+| `lsb_bits`             | 1–4                  | Default 1                                |
+
+```bash
+curl -X POST http://localhost:8080/api/embed \
+  -F "mp3_file=@cover.mp3" \
+  -F "secret_file=@secret.pdf" \
+  -F "key=mysecretkey" \
+  -F "use_encryption=true" \
+  -F "use_key_for_position=true" \
+  -F "lsb_bits=2" \
+  -o stego_cover.mp3
+```
+
+The response is the stego MP3 (`audio/mpeg`), served as `stego_<original name>.mp3`.
+
+**`POST /api/extract`**
+
+| Field      | Type   | Notes                                                    |
+|------------|--------|----------------------------------------------------------|
+| `mp3_file` | file   | Stego MP3                                                |
+| `key`      | string | Optional; required if encryption was used when embedding |
+
+```bash
+curl -X POST http://localhost:8080/api/extract \
+  -F "mp3_file=@stego_cover.mp3" \
+  -F "key=mysecretkey" \
+  -OJ
+```
+
+When metadata is available, the response includes these headers: `X-Original-Filename`, `X-File-Type`, `X-Secret-Size`, `X-Used-Encryption`, `X-Used-Key-Position`, `X-LSB-Bits`.
+
+**`POST /api/capacity`**: fields are `mp3_file` (file), `method` (`"lsb"` / `"header"`) and `lsb_bits` (1–4, for `lsb`). Returns JSON with `capacity_bytes`, `capacity_readable` and `method`.
+
+**`POST /api/psnr`**: fields are `original_file` (file) and `modified_file` (file). Returns JSON including `psnr` and `mse`.
+
+## Installation
+
+- **Requirements:** Go 1.21 or newer. There are no third-party dependencies.
+- **Build:** `go build main.go` from the project root, then run `./main`.
+- **Port:** 8080 (set in `main.go`).
+
+## Tech Stack
+
+- **Backend:** Go 1.21, standard library only (`net/http`, `encoding/json`, …)
+- **Frontend:** HTML, CSS and vanilla JavaScript, served statically from `static/`
+
+## Project Structure
 
 ```
 .
 ├── main.go
 ├── go.mod
 ├── internal/
-│   ├── crypto/           # Enkripsi Vigenere
+│   ├── crypto/           # Vigenère encryption
 │   ├── handlers/         # HTTP handlers (embed, extract, capacity, psnr, health)
 │   ├── middleware/       # CORS
-│   ├── models/           # Tipe request/response (jika diperlukan)
-│   └── stego/            # Logika LSB, header stego, metadata
-├── static/               # Frontend statis (HTML, JS)
-└── test/                 # Berkas uji contoh (mp3 & payload)
+│   ├── models/           # Request/response types
+│   └── stego/            # LSB logic, stego header, metadata
+├── static/               # Static frontend (HTML, JS)
+└── test/                 # Sample test files (MP3 & payloads)
 ```
 
-## Contoh Pemakaian Singkat
+## Test Samples
 
-- Uji cepat melalui frontend: buka `http://localhost:8080`, unggah file MP3 dan berkas rahasia, atur `LSB bits`, `key`, dan opsi enkripsi sesuai kebutuhan, lalu klik Embed/Extract.
-- Direktori `test/` menyediakan contoh MP3 dan beberapa payload untuk pengujian.
+The `test/` directory has a sample MP3 and payloads for each scenario, for example 1- to 4-bit LSB, encryption, key-based positioning, both combined, an oversized payload, and TXT/JPG/DOCX payloads.
 
-## Daftar Anggota
+## Team
 
-| NIM        | Nama                 |
-|------------|----------------------|
-| 13522150   | Albert Ghazaly       |
-| 13522158   | Muhammad Rasheed Qais Tandjung       |
+| NIM      | Name                           | GitHub                                           |
+|----------|--------------------------------|--------------------------------------------------|
+| 13522150 | Albert Ghazaly                 | [@AlbertGhazaly](https://github.com/AlbertGhazaly) |
+| 13522158 | Muhammad Rasheed Qais Tandjung | [@trimonuter](https://github.com/trimonuter)     |
 
+## License
 
-
-## Lisensi
-
-Proyek ini dirilis di bawah lisensi MIT — lihat berkas `LICENSE`.
+Released under the MIT License. See [`LICENSE`](LICENSE).
